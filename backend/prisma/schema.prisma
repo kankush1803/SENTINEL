@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   // GUEST, STAFF, MANAGER, RESPONDER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  incidents Incident[] @relation("ReportedBy")
+}
+
+model Incident {
+  id          String   @id @default(uuid())
+  type        String   // FIRE, MEDICAL, SECURITY, EVACUATION, SOS
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  severity    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  location    String
+  description String?
+  metadata    String?  // JSON string for additional AI data
+  reportedBy  User?    @relation("ReportedBy", fields: [reporterId], references: [id])
+  reporterId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  action    String
+  details   String
+  userId    String?
+  createdAt DateTime @default(now())
+}
