@@ -9,6 +9,7 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
 const incidentRoutes = require("./routes/incidents");
+const venueRoutes = require("./routes/venue");
 const prisma = require("./utils/db");
 const axios = require("axios");
 
@@ -32,6 +33,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/incidents", incidentRoutes);
+app.use("/api/venue", venueRoutes);
 
 // Legacy/Simulator Route for Sentinel Integration
 app.post("/api/alerts", async (req, res) => {
