@@ -2,14 +2,18 @@ const express = require("express");
 const prisma = require("../utils/db");
 const router = express.Router();
 
-// Get full venue structure
+// Get full venue structure with sensors
 router.get("/structure", async (req, res) => {
   try {
     const venue = await prisma.venue.findFirst({
       include: {
         floors: {
           include: {
-            zones: true,
+            zones: {
+              include: {
+                sensors: true,
+              },
+            },
           },
         },
       },
