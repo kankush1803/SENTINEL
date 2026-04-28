@@ -7,7 +7,7 @@ const INITIAL_TASKS = [
   { id:'T002', staff:'Nurse Kim Lee',  role:'Medical',    incident:'#1047', floor:'12', room:'1204', task:'Bring medical kit and oxygen',          status:'ENROUTE',    priority:'CRITICAL', ts:'21:18:07' },
   { id:'T003', staff:'Raj Kumar',      role:'Security',   incident:'#1046', floor:'B2', room:'C',   task:'Intercept suspicious individual',       status:'RESPONDING', priority:'HIGH',     ts:'21:14:33' },
   { id:'T004', staff:'Ali Hassan',     role:'Security',   incident:'#1046', floor:'B2', room:'C',   task:'Review CCTV Zone C footage live',       status:'RESPONDING', priority:'HIGH',     ts:'21:14:35' },
-  { id:'T005', staff:'Tom Lee',        role:'Concierge',  incident:'#1047', floor:'12', room:'1204','task: Escort paramedics from lobby to 12F',  status:'STANDBY',    priority:'HIGH',     ts:'21:18:10' },
+  { id:'T005', staff:'Tom Lee',        role:'Concierge',  incident:'#1047', floor:'12', room:'1204', task:'Escort paramedics from lobby to 12F',  status:'STANDBY',    priority:'HIGH',     ts:'21:18:10' },
   { id:'T006', staff:'Sara Patel',     role:'Fire Safety',incident:'#1045', floor:'3',  room:'BE',  task:'Ballroom East post-incident check',      status:'COMPLETE',   priority:'LOW',      ts:'20:58:40' },
 ];
 
