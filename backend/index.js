@@ -74,7 +74,14 @@ app.post("/api/alerts", async (req, res) => {
         console.error("AI Triage failed for alert:", err.message),
       );
 
-    res.status(201).json(incident);
+    res.status(201).json({
+      ...incident,
+      eventType: incident.type,
+      location: {
+        zone: zone || "Unknown Zone",
+        floor: floor || "1",
+      },
+    });
   } catch (err) {
     console.error("Failed to process alert:", err);
     res.status(500).json({ error: "Failed to process alert" });
@@ -95,6 +102,44 @@ io.on("connection", (socket) => {
   socket.on("join-room", (room) => {
     socket.join(room);
     console.log(`User joined room: ${room}`);
+  });
+
+  socket.on("sos-trigger", async (data) => {
+    console.log("SOS Triggered via Socket:", data);
+    try {
+      const incident = await prisma.incident.create({
+        data: {
+          type: "SOS",
+          location: data.location || "Unknown Location",
+          description: "Emergency SOS triggered from mobile app",
+          severity: "CRITICAL",
+          status: "OPEN",
+          reporterId: data.userId || null,
+        },
+      });
+
+      io.emit("incident-update", incident);
+      io.emit("new-alert", incident);
+
+      // AI Triage
+      axios
+        .post("http://localhost:5002/triage", {
+          description: `SOS Triggered at ${data.location || "Unknown Location"}. User ID: ${data.userId || "guest"}`,
+        })
+        .then(async (aiRes) => {
+          const triageResult = aiRes.data.triage;
+          const updatedIncident = await prisma.incident.update({
+            where: { id: incident.id },
+            data: { metadata: JSON.stringify(triageResult) },
+          });
+          io.emit("incident-update", updatedIncident);
+        })
+        .catch((err) =>
+          console.error("AI Triage failed for SOS:", err.message),
+        );
+    } catch (err) {
+      console.error("Failed to process SOS trigger:", err);
+    }
   });
 
   socket.on("disconnect", () => {

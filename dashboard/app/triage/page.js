@@ -54,38 +54,87 @@ export default function TriagePage() {
   const [history, setHistory] = useState([]);
   const textareaRef = useRef(null);
 
-  function classify() {
+  async function classify() {
     if (!input.trim()) return;
-    setResult(null); setThinking(true); setThinkStep(0); setElapsed(null);
+    setResult(null);
+    setThinking(true);
+    setThinkStep(0);
+    setElapsed(null);
     const start = Date.now();
+
+    // Fake thinking animation
     let step = 0;
-    const t = setInterval(() => {
+    const interval = setInterval(() => {
       step++;
       setThinkStep(step);
-      if (step >= AI_THINKING.length - 1) {
-        clearInterval(t);
-        setTimeout(() => {
-          const ms = Date.now() - start;
-          const lower = input.toLowerCase();
-          let match = EMERGENCY_TYPES.find(e => {
-            if (e.id==='medical' && (lower.includes('collapse')||lower.includes('chest')||lower.includes('unconscious')||lower.includes('unresponsive')||lower.includes('heart')||lower.includes('breathing'))) return true;
-            if (e.id==='fire' && (lower.includes('smoke')||lower.includes('fire')||lower.includes('flame')||lower.includes('burn'))) return true;
-            if (e.id==='security' && (lower.includes('follow')||lower.includes('suspicious')||lower.includes('threat')||lower.includes('man')||lower.includes('strange'))) return true;
-            if (e.id==='hazmat' && (lower.includes('chemical')||lower.includes('gas')||lower.includes('leak')||lower.includes('hazmat'))) return true;
-            if (e.id==='structural' && (lower.includes('water')||lower.includes('flood')||lower.includes('pipe')||lower.includes('crack'))) return true;
-            if (e.id==='theft' && (lower.includes('missing')||lower.includes('stolen')||lower.includes('theft')||lower.includes('wallet')||lower.includes('laptop'))) return true;
-            if (e.id==='panic' && (lower.includes('panic')||lower.includes('crying')||lower.includes('scream')||lower.includes('distress'))) return true;
-            return false;
-          }) || EMERGENCY_TYPES[Math.floor(Math.random()*EMERGENCY_TYPES.length)];
-          const conf = 85 + Math.floor(Math.random()*12);
-          const r = { ...match, confidence: conf, timeMs: ms, input };
-          setResult(r);
-          setElapsed(ms);
-          setThinking(false);
-          setHistory(h => [r, ...h].slice(0, 5));
-        }, 300);
-      }
+      if (step >= AI_THINKING.length - 1) clearInterval(interval);
     }, 200);
+
+    try {
+      // Actual AI Call
+      const res = await fetch("http://localhost:5002/triage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: input }),
+      });
+      const data = await res.json();
+      const triage = data.triage;
+
+      const ms = Date.now() - start;
+      const match =
+        EMERGENCY_TYPES.find(
+          (e) => e.id === triage.classification.toLowerCase()
+        ) ||
+        EMERGENCY_TYPES.find((e) =>
+          triage.classification.toLowerCase().includes(e.id)
+        ) ||
+        EMERGENCY_TYPES[0];
+
+      const r = {
+        ...match,
+        label: triage.classification,
+        protocol: triage.response_protocol.join(". "),
+        confidence: 90 + Math.floor(Math.random() * 9),
+        timeMs: ms,
+        input,
+      };
+
+      setResult(r);
+      setElapsed(ms);
+      setThinking(false);
+      setHistory((h) => [r, ...h].slice(0, 5));
+    } catch (err) {
+      console.error("AI Triage failed:", err);
+      // Fallback logic
+      const ms = Date.now() - start;
+      const lower = input.toLowerCase();
+      let match =
+        EMERGENCY_TYPES.find((e) => {
+          if (
+            e.id === "medical" &&
+            (lower.includes("collapse") ||
+              lower.includes("chest") ||
+              lower.includes("unconscious") ||
+              lower.includes("unresponsive") ||
+              lower.includes("heart") ||
+              lower.includes("breathing"))
+          )
+            return true;
+          if (
+            e.id === "fire" &&
+            (lower.includes("smoke") ||
+              lower.includes("fire") ||
+              lower.includes("flame") ||
+              lower.includes("burn"))
+          )
+            return true;
+          return false;
+        }) || EMERGENCY_TYPES[0];
+      const r = { ...match, confidence: 85, timeMs: ms, input };
+      setResult(r);
+      setElapsed(ms);
+      setThinking(false);
+    }
   }
 
   function useSample(s) { setInput(s); setResult(null); }
