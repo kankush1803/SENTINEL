@@ -42,6 +42,15 @@ router.post("/", async (req, res) => {
 
         // Emit updated incident with AI metadata
         req.app.get("io").emit("incident-update", updatedIncident);
+
+        // --- HACKATHON: REAL-TIME LOCATION & SMS SIMULATION ---
+        // In a production environment, you would use Wi-Fi trilateration (e.g., Cisco Meraki/Aruba) 
+        // to find the exact coordinates of the staff nearest to `location`.
+        // Then, you would use the Twilio SDK to send an SMS dispatch to them.
+        console.log(`\n[Twilio SMS Service] 📱 Dispatching SMS to nearest available staff...`);
+        console.log(`[Twilio SMS Service] 📍 Staff found 120ft away from ${location}.`);
+        console.log(`[Twilio SMS Service] 💬 Message: "URGENT [${triageResult.classification}]: Proceed to ${location}. Protocol: ${triageResult.response_protocol[0]}"\n`);
+
       })
       .catch((err) => console.error("AI Triage failed:", err.message));
 

@@ -116,7 +116,7 @@ export default function TriagePage() {
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/incidents")
+    fetch("http://localhost:4000/api/incidents")
       .then((res) => res.json())
       .then((data) => {
         if (data && Array.isArray(data)) {
