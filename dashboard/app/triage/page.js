@@ -256,19 +256,13 @@ export default function TriagePage() {
           </p>
         </div>
 
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}
-        >
+        <div className="grid-2">
           {/* input panel */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="grid-stack">
             <div className="glass" style={{ padding: 24 }}>
               <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 14,
-                  marginBottom: 14,
-                  color: "var(--blue)",
-                }}
+                className="panel-title"
+                style={{ marginBottom: 16, color: "var(--blue)" }}
               >
                 📝 Incident Description Input
               </div>
@@ -277,24 +271,17 @@ export default function TriagePage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Describe the emergency in plain language... e.g. 'Guest in Room 1204 collapsed and is unresponsive'"
+                className="input-field"
                 style={{
-                  width: "100%",
                   minHeight: 140,
                   background: "rgba(0,200,255,0.04)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius-md)",
-                  color: "var(--text-primary)",
                   fontFamily: "var(--font-mono)",
-                  fontSize: 14,
                   padding: 14,
                   resize: "vertical",
-                  outline: "none",
                   lineHeight: 1.6,
                 }}
-                onFocus={(e) => (e.target.style.borderColor = "var(--blue)")}
-                onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
               />
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
                 <button
                   className="btn btn-primary"
                   style={{ flex: 1, justifyContent: "center" }}
@@ -317,389 +304,212 @@ export default function TriagePage() {
 
             {/* sample prompts */}
             <div className="glass" style={{ padding: 20 }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 13,
-                  marginBottom: 12,
-                  color: "var(--text-muted)",
-                  letterSpacing: "0.06em",
-                }}
-              >
+              <div className="stat-label" style={{ marginBottom: 12 }}>
                 SAMPLE INCIDENT DESCRIPTIONS
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="grid-stack" style={{ gap: 8 }}>
                 {SAMPLE_INPUTS.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => useSample(s)}
-                    style={{
-                      textAlign: "left",
-                      padding: "10px 14px",
-                      borderRadius: "var(--radius-md)",
-                      background: "var(--bg-glass-light)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-secondary)",
-                      fontSize: 13,
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "var(--blue)";
-                      e.currentTarget.style.color = "var(--blue)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "var(--border)";
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                    }}
+                    className="triage-chip"
+                    style={{ width: "100%", justifyContent: "flex-start" }}
                   >
                     {s}
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* history */}
-            {history.length > 0 && (
-              <div className="glass" style={{ padding: 20 }}>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 13,
-                    marginBottom: 12,
-                    color: "var(--text-muted)",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  RECENT CLASSIFICATIONS
-                </div>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {history.map((h, i) => (
-                    <div
-                      key={i}
-                      className="glass-sm"
-                      style={{
-                        padding: "8px 12px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: h.color,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {h.icon} {h.label}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "var(--text-muted)",
-                          fontFamily: "var(--font-mono)",
-                        }}
-                      >
-                        {h.timeMs}ms · {h.confidence}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* output panel */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* AI thinking */}
-            {thinking && (
-              <div className="glass" style={{ padding: 24 }}>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 14,
-                    marginBottom: 16,
-                    color: "var(--blue)",
-                  }}
-                >
-                  🤖 Claude AI Processing...
-                </div>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {AI_THINKING.map((step, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        opacity: i <= thinkStep ? 1 : 0.2,
-                        transition: "opacity 0.3s",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color:
-                            i < thinkStep
-                              ? "var(--green)"
-                              : i === thinkStep
-                                ? "var(--blue)"
-                                : "var(--text-muted)",
-                          fontSize: 14,
-                        }}
-                      >
-                        {i < thinkStep ? "✓" : i === thinkStep ? "▶" : "○"}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color:
-                            i === thinkStep
-                              ? "var(--blue)"
-                              : "var(--text-secondary)",
-                          fontFamily:
-                            i === thinkStep ? "var(--font-mono)" : "inherit",
-                        }}
-                      >
-                        {i === thinkStep ? <TypeWriter text={step} /> : step}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 16 }}>
-                  <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{
-                        width: `${(thinkStep / AI_THINKING.length) * 100}%`,
-                        background:
-                          "linear-gradient(90deg, var(--blue-dim), var(--blue))",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* result */}
-            {result && !thinking && (
+          {/* results panel */}
+          <div className="grid-stack">
+            <div className="glass" style={{ padding: 24, minHeight: 400 }}>
               <div
-                className="glass"
-                style={{
-                  padding: 24,
-                  borderColor: result.color,
-                  boxShadow: `0 0 30px ${result.color}22`,
-                }}
+                className="panel-title"
+                style={{ marginBottom: 20, color: "var(--blue)" }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 14,
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    AI CLASSIFICATION RESULT
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 12,
-                      color: "var(--green)",
-                      background: "rgba(0,229,160,0.1)",
-                      padding: "3px 10px",
-                      borderRadius: 99,
-                    }}
-                  >
-                    ⚡ {result.timeMs}ms
-                  </span>
-                </div>
+                🔍 AI Classification Result
+              </div>
 
+              {thinking ? (
                 <div
+                  className="flex-center"
                   style={{
-                    textAlign: "center",
-                    padding: "24px 0",
-                    borderBottom: "1px solid var(--border)",
-                    marginBottom: 20,
+                    flexDirection: "column",
+                    height: "300px",
+                    gap: 20,
                   }}
                 >
-                  <div style={{ fontSize: 56, marginBottom: 12 }}>
-                    {result.icon}
-                  </div>
-                  <h2
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 800,
-                      color: result.color,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {result.label}
-                  </h2>
                   <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      gap: 12,
-                    }}
-                  >
-                    <span
-                      className={`badge ${result.color === "var(--red)" ? "badge-red" : "badge-amber"}`}
+                    className="pulse-dot pulse-blue"
+                    style={{ width: 40, height: 40 }}
+                  />
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      className="glow-blue"
+                      style={{ fontWeight: 700, marginBottom: 8 }}
                     >
-                      {result.color === "var(--red)"
-                        ? "CRITICAL"
-                        : "HIGH PRIORITY"}
-                    </span>
-                    <span
+                      {AI_THINKING[thinkStep]}
+                    </div>
+                    <div
                       style={{
+                        color: "var(--text-muted)",
+                        fontSize: 12,
                         fontFamily: "var(--font-mono)",
-                        fontSize: 13,
-                        color: "var(--green)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
                       }}
                     >
-                      {result.confidence}% confidence
-                    </span>
+                      ELAPSED: {(elapsed / 1000).toFixed(2)}s
+                    </div>
                   </div>
                 </div>
+              ) : result ? (
+                <div className="grid-stack" style={{ gap: 20 }}>
+                  <div
+                    className="glass-sm"
+                    style={{
+                      padding: 20,
+                      borderLeft: `4px solid ${result.color}`,
+                      background: `${result.color}08`,
+                    }}
+                  >
+                    <div className="flex-between" style={{ marginBottom: 12 }}>
+                      <div className="flex-center" style={{ gap: 10 }}>
+                        <span style={{ fontSize: 24 }}>{result.icon}</span>
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 800 }}>
+                            {result.label}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "var(--text-muted)",
+                              fontFamily: "var(--font-mono)",
+                            }}
+                          >
+                            CLASSIFIED IN {result.timeMs}ms
+                          </div>
+                        </div>
+                      </div>
+                      <div className="badge badge-blue">
+                        {result.confidence}% CONFIDENCE
+                      </div>
+                    </div>
 
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
-                >
-                  <div className="glass-sm" style={{ padding: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        fontWeight: 600,
-                        letterSpacing: "0.08em",
-                        marginBottom: 8,
-                      }}
-                    >
-                      RESPONSE PROTOCOL
+                    <div style={{ marginTop: 16 }}>
+                      <div className="stat-label">Response Protocol</div>
+                      <div
+                        className="glass-sm"
+                        style={{
+                          padding: 14,
+                          fontSize: 14,
+                          color: "var(--text-primary)",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <TypeWriter text={result.protocol} />
+                      </div>
                     </div>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--text-secondary)",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {result.protocol}
-                    </p>
                   </div>
-                  <div className="glass-sm" style={{ padding: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        fontWeight: 600,
-                        letterSpacing: "0.08em",
-                        marginBottom: 8,
-                      }}
-                    >
-                      ORIGINAL INPUT
+
+                  <div className="grid-2">
+                    <div className="glass-sm" style={{ padding: 16 }}>
+                      <div className="stat-label">Incident Type</div>
+                      <div style={{ fontWeight: 700 }}>
+                        {result.id.toUpperCase()}
+                      </div>
                     </div>
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--text-secondary)",
-                        fontStyle: "italic",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      "{result.input}"
-                    </p>
+                    <div className="glass-sm" style={{ padding: 16 }}>
+                      <div className="stat-label">Priority Level</div>
+                      <span
+                        className={`badge ${result.color === "var(--red)" ? "badge-red" : "badge-amber"}`}
+                      >
+                        {result.color === "var(--red)"
+                          ? "P1 CRITICAL"
+                          : "P2 HIGH"}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-                    <button
-                      className="btn btn-primary"
-                      style={{ flex: 1, justifyContent: "center" }}
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(
-                            "http://localhost:3001/api/incidents",
-                            {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                type: result.label.toUpperCase(),
-                                description: result.input,
-                                location: "Manual Triage Input",
-                              }),
-                            },
-                          );
-                          if (res.ok) alert("Incident promoted to Dashboard!");
-                        } catch (err) {
-                          alert("Failed to promote incident");
-                        }
-                      }}
-                    >
-                      📢 Promote to Incident
+
+                  <div
+                    className="flex-center"
+                    style={{ gap: 12, marginTop: 10 }}
+                  >
+                    <button className="btn btn-primary" style={{ flex: 1 }}>
+                      Confirm & Dispatch
                     </button>
                     <button
                       className="btn btn-ghost"
-                      onClick={() => {
-                        setInput("");
-                        setResult(null);
-                      }}
+                      onClick={() => setResult(null)}
                     >
-                      Clear
+                      Reset
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* emergency types grid */}
-            {!thinking && !result && (
-              <div className="glass" style={{ padding: 24 }}>
+              ) : (
                 <div
+                  className="flex-center"
                   style={{
-                    fontWeight: 700,
-                    fontSize: 14,
-                    marginBottom: 16,
+                    flexDirection: "column",
+                    height: "300px",
                     color: "var(--text-muted)",
-                    letterSpacing: "0.06em",
+                    textAlign: "center",
+                    gap: 16,
                   }}
                 >
-                  SUPPORTED EMERGENCY TYPES
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
-                  }}
-                >
-                  {EMERGENCY_TYPES.map((t, i) => (
+                  <div style={{ fontSize: 48, opacity: 0.2 }}>🧠</div>
+                  <div>
                     <div
-                      key={i}
-                      className="triage-chip"
-                      onClick={() =>
-                        setInput(`${t.label} reported on hotel premises`)
-                      }
+                      style={{
+                        fontWeight: 600,
+                        color: "var(--text-secondary)",
+                      }}
                     >
-                      <span style={{ marginRight: 8 }}>{t.icon}</span>
-                      {t.label}
+                      Waiting for input...
                     </div>
-                  ))}
+                    <div style={{ fontSize: 12, marginTop: 4 }}>
+                      Enter a description or use a sample prompt to start
+                    </div>
+                  </div>
                 </div>
+              )}
+            </div>
+
+            {/* history */}
+            <div className="glass" style={{ padding: 20 }}>
+              <div className="stat-label" style={{ marginBottom: 12 }}>
+                RECENT TRIAGE HISTORY
               </div>
-            )}
+              <div className="grid-stack" style={{ gap: 8 }}>
+                {history.map((h, i) => (
+                  <div
+                    key={i}
+                    className="glass-sm"
+                    style={{
+                      padding: "10px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                    }}
+                  >
+                    <div className="flex-center" style={{ gap: 10 }}>
+                      <span>{h.icon}</span>
+                      <span style={{ fontWeight: 600 }}>{h.label}</span>
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10,
+                      }}
+                    >
+                      {h.confidence}% CONF
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

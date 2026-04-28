@@ -6,8 +6,8 @@ const axios = require("axios");
 const router = express.Router();
 
 // Create Incident (SOS Trigger)
-router.post("/", auth, async (req, res) => {
-  const { type, location, description } = req.body;
+router.post("/", async (req, res) => {
+  const { type, location, description, reporterId } = req.body;
 
   try {
     const incident = await prisma.incident.create({
@@ -15,7 +15,7 @@ router.post("/", auth, async (req, res) => {
         type,
         location,
         description,
-        reporterId: req.user.id,
+        reporterId: reporterId || null,
         severity: type === "SOS" ? "CRITICAL" : "MEDIUM",
         status: "OPEN",
       },
@@ -52,19 +52,16 @@ router.post("/", auth, async (req, res) => {
 });
 
 // Get all incidents (Public for demo/dashboard)
-router.get(
-  "/",
-  async (req, res) => {
-    try {
-      const incidents = await prisma.incident.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { reportedBy: { select: { name: true, email: true } } },
-      });
-      res.json(incidents);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch incidents" });
-    }
-  },
-);
+router.get("/", async (req, res) => {
+  try {
+    const incidents = await prisma.incident.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { reportedBy: { select: { name: true, email: true } } },
+    });
+    res.json(incidents);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch incidents" });
+  }
+});
 
 module.exports = router;

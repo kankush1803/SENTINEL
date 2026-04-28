@@ -157,7 +157,7 @@ export default function SOSPage() {
               fontFamily: "var(--font-mono)",
             }}
           >
-            <span>RCIO Guest Portal</span>
+            <span className="glow-blue">SENTINEL GUEST</span>
             <span>
               {ROOM} · {FLOOR}
             </span>
@@ -167,12 +167,8 @@ export default function SOSPage() {
             {/* IDLE — hold SOS */}
             {phase === "idle" && (
               <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 24,
-                }}
+                className="grid-stack"
+                style={{ alignItems: "center", gap: 24 }}
               >
                 <div style={{ textAlign: "center" }}>
                   <h1
@@ -220,7 +216,7 @@ export default function SOSPage() {
                     />
                   </svg>
                   <button
-                    className="sos-btn"
+                    className={`sos-btn ${holding ? "holding" : ""}`}
                     onMouseDown={startHold}
                     onMouseUp={stopHold}
                     onTouchStart={startHold}
@@ -230,7 +226,13 @@ export default function SOSPage() {
                     <div className="sos-ring" />
                     <div className="sos-ring" />
                     <div className="sos-ring" />
-                    <span style={{ fontSize: 13, letterSpacing: "0.15em" }}>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        letterSpacing: "0.15em",
+                        fontWeight: 800,
+                      }}
+                    >
                       SOS
                     </span>
                     <span
@@ -246,14 +248,7 @@ export default function SOSPage() {
                   </button>
                 </div>
 
-                <div
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
+                <div className="grid-stack" style={{ width: "100%", gap: 10 }}>
                   {[
                     {
                       icon: "📞",
@@ -265,39 +260,23 @@ export default function SOSPage() {
                       label: "Silent SOS",
                       sub: "Alert without sound",
                     },
-                    {
-                      icon: "🚪",
-                      label: "Request Evacuation",
-                      sub: "Room evac assistance",
-                    },
                   ].map((a, i) => (
                     <button
                       key={i}
+                      className="glass-sm stat-card"
                       style={{
                         display: "flex",
                         alignItems: "center",
                         gap: 14,
                         padding: "12px 16px",
-                        background: "var(--bg-glass-light)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "var(--radius-md)",
-                        color: "var(--text-secondary)",
-                        fontSize: 13,
-                        cursor: "pointer",
                         textAlign: "left",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "var(--blue)";
-                        e.currentTarget.style.color = "var(--blue)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--border)";
-                        e.currentTarget.style.color = "var(--text-secondary)";
                       }}
                     >
                       <span style={{ fontSize: 22 }}>{a.icon}</span>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{a.label}</div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>
+                          {a.label}
+                        </div>
                         <div style={{ fontSize: 11, opacity: 0.7 }}>
                           {a.sub}
                         </div>
@@ -310,9 +289,7 @@ export default function SOSPage() {
 
             {/* CATEGORY SELECT */}
             {phase === "category" && (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 20 }}
-              >
+              <div className="grid-stack" style={{ gap: 20 }}>
                 <div style={{ textAlign: "center" }}>
                   <div
                     style={{
@@ -328,48 +305,30 @@ export default function SOSPage() {
                   >
                     What is the emergency?
                   </h2>
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    Select the emergency type to help AI prioritize your
-                    response
-                  </p>
                 </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 12,
-                  }}
-                >
+                <div className="grid-2" style={{ gap: 12 }}>
                   {CATEGORIES.map((c) => (
                     <button
                       key={c.id}
                       onClick={() => selectCategory(c)}
+                      className="glass stat-card"
                       style={{
                         padding: "20px 16px",
-                        borderRadius: "var(--radius-lg)",
-                        background: `${c.color}11`,
-                        border: `1px solid ${c.color}44`,
-                        color: c.color,
-                        cursor: "pointer",
-                        transition: "all 0.2s",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         gap: 8,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = `${c.color}22`;
-                        e.currentTarget.style.borderColor = c.color;
-                        e.currentTarget.style.transform = "scale(1.03)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = `${c.color}11`;
-                        e.currentTarget.style.borderColor = `${c.color}44`;
-                        e.currentTarget.style.transform = "scale(1)";
+                        borderColor: `${c.color}44`,
                       }}
                     >
                       <span style={{ fontSize: 32 }}>{c.icon}</span>
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 14,
+                          color: c.color,
+                        }}
+                      >
                         {c.label}
                       </span>
                     </button>
@@ -380,9 +339,7 @@ export default function SOSPage() {
 
             {/* VOICE / TEXT input */}
             {phase === "voice" && (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 18 }}
-              >
+              <div className="grid-stack" style={{ gap: 18 }}>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>
                     {category?.icon}
@@ -391,293 +348,151 @@ export default function SOSPage() {
                     style={{
                       fontSize: 18,
                       fontWeight: 800,
-                      marginBottom: 4,
                       color: category?.color,
                     }}
                   >
                     {category?.label} Emergency
                   </h2>
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    Describe what's happening (optional)
-                  </p>
                 </div>
                 <textarea
                   value={voice}
                   onChange={(e) => setVoice(e.target.value)}
-                  placeholder="e.g. Guest has chest pain and is having trouble breathing..."
+                  placeholder="Tell us more (optional)..."
+                  className="input-field"
                   style={{
                     width: "100%",
                     minHeight: 100,
-                    background: "rgba(0,200,255,0.04)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--radius-md)",
-                    color: "var(--text-primary)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 13,
                     padding: 14,
                     resize: "none",
-                    outline: "none",
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = "var(--blue)")}
-                  onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
                 />
-
                 <div
+                  className="glass-sm"
                   style={{
-                    background: "var(--amber-glow)",
-                    border: "1px solid var(--amber)",
-                    borderRadius: "var(--radius-md)",
                     padding: "10px 14px",
                     fontSize: 12,
                     color: "var(--amber)",
+                    border: "1px solid var(--amber)44",
                   }}
                 >
-                  ⚡ AI will auto-classify and dispatch the right team in under
-                  2 seconds
+                  ⚡ AI will auto-classify and dispatch the right team instantly
                 </div>
-
                 <div style={{ display: "flex", gap: 10 }}>
                   <button
                     className="btn btn-ghost"
                     onClick={() => setPhase("category")}
-                    style={{ fontSize: 13 }}
                   >
                     ← Back
                   </button>
                   <button
-                    className="btn btn-danger"
+                    className="btn btn-primary"
                     onClick={submitSOS}
-                    style={{ flex: 1, justifyContent: "center", fontSize: 14 }}
+                    style={{ flex: 1, justifyContent: "center" }}
                   >
-                    🚨 Send SOS Now
+                    Confirm SOS
                   </button>
                 </div>
               </div>
             )}
 
-            {/* SENT — AI processing */}
-            {phase === "sent" && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 20,
-                  padding: "20px 0",
-                }}
-              >
+            {/* TRACKING */}
+            {(phase === "sent" || phase === "tracking") && (
+              <div className="grid-stack" style={{ gap: 20 }}>
                 <div
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    background: "var(--red-glow)",
-                    border: "2px solid var(--red)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 36,
-                  }}
+                  className="glass"
+                  style={{ padding: 24, textAlign: "center" }}
                 >
-                  🚨
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <h2
+                  <div
+                    className="pulse-dot pulse-red"
+                    style={{ margin: "0 auto 16px", width: 40, height: 40 }}
+                  />
+                  <div
                     style={{
                       fontSize: 20,
                       fontWeight: 800,
                       color: "var(--red)",
-                      marginBottom: 6,
                     }}
                   >
-                    SOS Sent!
-                  </h2>
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    {typing
-                      ? "🧠 AI is classifying your emergency..."
-                      : "✅ Response team being dispatched..."}
-                  </p>
+                    EMERGENCY TRIGGERED
+                  </div>
+                  <div
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: 13,
+                      marginTop: 8,
+                    }}
+                  >
+                    Help is on the way to {ROOM}
+                  </div>
                 </div>
+
                 {typing && (
-                  <div style={{ width: "100%" }}>
-                    <div className="progress-bar">
-                      <div
-                        className="progress-fill"
-                        style={{
-                          width: "70%",
-                          background:
-                            "linear-gradient(90deg,var(--red),var(--amber))",
-                          animation: "none",
-                        }}
-                      />
+                  <div
+                    className="glass-sm"
+                    style={{ padding: 20, textAlign: "center" }}
+                  >
+                    <div
+                      className="glow-blue"
+                      style={{ fontSize: 12, fontWeight: 600 }}
+                    >
+                      AI TRIAGE IN PROGRESS...
                     </div>
+                  </div>
+                )}
+
+                {triageResult && (
+                  <div
+                    className="glass"
+                    style={{ padding: 0, overflow: "hidden" }}
+                  >
                     <div
                       style={{
-                        fontSize: 12,
-                        color: "var(--text-muted)",
-                        textAlign: "center",
-                        marginTop: 8,
-                        fontFamily: "var(--font-mono)",
+                        padding: "12px 20px",
+                        background: "rgba(255, 50, 50, 0.1)",
+                        borderBottom: "1px solid var(--border)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
                       }}
                     >
-                      Claude AI processing...
+                      <span style={{ fontWeight: 700, fontSize: 11 }}>
+                        DISPATCH STATUS
+                      </span>
+                      <span className="badge badge-red">EN ROUTE</span>
+                    </div>
+                    <div style={{ padding: 20 }}>
+                      <div
+                        className="flex-between"
+                        style={{ marginBottom: 16 }}
+                      >
+                        <div>
+                          <div className="stat-label">Assigned Team</div>
+                          <div style={{ fontWeight: 700 }}>
+                            {triageResult.staff}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div className="stat-label">ETA</div>
+                          <div className="eta-badge">
+                            {m}:{s.toString().padStart(2, "0")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="glass-sm" style={{ padding: 12 }}>
+                        <div className="stat-label">Protocol</div>
+                        <div
+                          style={{ fontSize: 13, color: "var(--text-primary)" }}
+                        >
+                          {triageResult.protocol}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             )}
-
-            {/* TRACKING */}
-            {phase === "tracking" && triageResult && (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 18 }}
-              >
-                <div
-                  className="alert-banner alert-critical"
-                  style={{ borderRadius: "var(--radius-md)" }}
-                >
-                  <span style={{ fontSize: 22 }}>🚨</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>
-                      Help is on the way — Stay calm
-                    </div>
-                    <div style={{ fontSize: 11, opacity: 0.8 }}>
-                      Your location has been pinned on the response map
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "16px 0",
-                    borderBottom: "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-muted)",
-                      marginBottom: 8,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    FIRST RESPONDER ETA
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 52,
-                      fontWeight: 900,
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--amber)",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {m}:{String(s).padStart(2, "0")}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "var(--text-secondary)",
-                      marginTop: 6,
-                    }}
-                  >
-                    {triageResult.staff}
-                  </div>
-                </div>
-
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                >
-                  <div className="glass-sm" style={{ padding: 14 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        marginBottom: 4,
-                        fontWeight: 600,
-                      }}
-                    >
-                      AI CLASSIFICATION
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: "var(--blue)",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {triageResult.type} — {triageResult.severity}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--text-secondary)",
-                        marginTop: 4,
-                      }}
-                    >
-                      {triageResult.protocol}
-                    </div>
-                  </div>
-                  <div
-                    className="glass-sm"
-                    style={{
-                      padding: 12,
-                      display: "flex",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      AI Confidence
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: "var(--green)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {triageResult.confidence}%
-                    </span>
-                  </div>
-                </div>
-
-                <Link
-                  href="/dashboard"
-                  className="btn btn-primary"
-                  style={{ justifyContent: "center", fontSize: 13 }}
-                >
-                  📡 View on War Room Map
-                </Link>
-
-                <button
-                  className="btn btn-ghost"
-                  style={{ fontSize: 12, justifyContent: "center" }}
-                  onClick={() => {
-                    setPhase("idle");
-                    setCategory(null);
-                    setVoice("");
-                    setTriageResult(null);
-                    setEta(180);
-                  }}
-                >
-                  ← Start New SOS
-                </button>
-              </div>
-            )}
           </div>
         </div>
-
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: 12,
-            color: "var(--text-muted)",
-            marginTop: 20,
-          }}
-        >
-          Guest SOS Portal · RCIO · Room auto-detected via hotel network
-        </p>
       </div>
     </main>
   );

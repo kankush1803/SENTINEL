@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { io } from "socket.io-client";
+import { BACKEND_URL } from "../api";
 
-const socket = io("http://localhost:3001");
+const socket = io(BACKEND_URL);
 
 const INITIAL_INCIDENTS = [
   {
@@ -137,22 +138,21 @@ const TIMELINE = [
   },
 ];
 
-function ETATimer({ init }) {
-  const [secs, setSecs] = useState(init);
-  useEffect(() => {
-    const t = setInterval(() => setSecs((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const m = Math.floor(secs / 60),
-    s = secs % 60;
-  return (
-    <span className="eta-badge">
-      ⏱ {m}:{String(s).padStart(2, "0")}
-    </span>
-  );
-}
-
 function FloorMapSVG({ incidents }) {
+  // Helper to map location string to SVG coordinates
+  const getCoords = (location) => {
+    const loc = location?.toLowerCase() || "";
+    if (loc.includes("1204") || loc.includes("floor 12"))
+      return { x: 290, y: 55, color: "var(--red)" };
+    if (loc.includes("parking") || loc.includes("b2"))
+      return { x: 300, y: 170, color: "var(--amber)" };
+    if (loc.includes("ballroom"))
+      return { x: 410, y: 270, color: "var(--green)" };
+    if (loc.includes("pool") || loc.includes("floor 1"))
+      return { x: 150, y: 270, color: "var(--blue)" };
+    return { x: 100, y: 100, color: "var(--blue)" };
+  };
+
   return (
     <svg viewBox="0 0 600 340" style={{ width: "100%", height: "100%" }}>
       {/* grid */}
@@ -185,9 +185,9 @@ function FloorMapSVG({ incidents }) {
         width="540"
         height="300"
         rx="8"
-        fill="rgba(0,200,255,0.04)"
-        stroke="rgba(0,200,255,0.2)"
-        strokeWidth="1.5"
+        fill="rgba(0,200,255,0.02)"
+        stroke="rgba(0,200,255,0.15)"
+        strokeWidth="1"
       />
       {/* lobby */}
       <rect
@@ -205,10 +205,10 @@ function FloorMapSVG({ incidents }) {
         y="285"
         textAnchor="middle"
         fill="rgba(0,200,255,0.5)"
-        fontSize="11"
-        fontFamily="Inter"
+        fontSize="10"
+        fontFamily="var(--font-mono)"
       >
-        LOBBY
+        LOBBY / FLOOR 1
       </text>
       {/* ballroom */}
       <rect
@@ -217,17 +217,17 @@ function FloorMapSVG({ incidents }) {
         width="280"
         height="60"
         rx="4"
-        fill="rgba(255,59,92,0.05)"
-        stroke="rgba(255,59,92,0.2)"
+        fill="rgba(0,200,255,0.04)"
+        stroke="rgba(0,200,255,0.15)"
         strokeWidth="1"
       />
       <text
         x="410"
         y="285"
         textAnchor="middle"
-        fill="rgba(255,59,92,0.6)"
-        fontSize="11"
-        fontFamily="Inter"
+        fill="rgba(0,200,255,0.5)"
+        fontSize="10"
+        fontFamily="var(--font-mono)"
       >
         BALLROOM EAST
       </text>
@@ -240,8 +240,8 @@ function FloorMapSVG({ incidents }) {
           width="70"
           height="50"
           rx="4"
-          fill={i === 3 ? "rgba(255,59,92,0.15)" : "rgba(0,200,255,0.04)"}
-          stroke={i === 3 ? "rgba(255,59,92,0.5)" : "rgba(0,200,255,0.12)"}
+          fill="rgba(0,200,255,0.04)"
+          stroke="rgba(0,200,255,0.1)"
           strokeWidth="1"
         />
       ))}
@@ -249,11 +249,11 @@ function FloorMapSVG({ incidents }) {
         x="290"
         y="70"
         textAnchor="middle"
-        fill="rgba(255,59,92,0.7)"
+        fill="rgba(0,200,255,0.4)"
         fontSize="10"
-        fontFamily="Inter"
+        fontFamily="var(--font-mono)"
       >
-        Rm 1204
+        FLOOR 12 GUEST ROOMS
       </text>
       {/* parking */}
       <rect
@@ -262,133 +262,64 @@ function FloorMapSVG({ incidents }) {
         width="500"
         height="120"
         rx="4"
-        fill="rgba(255,179,71,0.04)"
-        stroke="rgba(255,179,71,0.15)"
+        fill="rgba(0,200,255,0.02)"
+        stroke="rgba(0,200,255,0.1)"
         strokeWidth="1"
       />
       <text
         x="300"
         y="175"
         textAnchor="middle"
-        fill="rgba(255,179,71,0.5)"
-        fontSize="11"
-        fontFamily="Inter"
-      >
-        B2 PARKING — ZONE C
-      </text>
-      {/* incident pins */}
-      <g transform="translate(290,55)">
-        <circle
-          r="14"
-          fill="rgba(255,59,92,0.2)"
-          stroke="var(--red)"
-          strokeWidth="1.5"
-        >
-          <animate
-            attributeName="r"
-            values="14;22;14"
-            dur="1.5s"
-            repeatCount="indefinite"
-          />
-          <animate
-            attributeName="opacity"
-            values="1;0.3;1"
-            dur="1.5s"
-            repeatCount="indefinite"
-          />
-        </circle>
-        <circle r="7" fill="var(--red)" />
-        <text
-          y="4"
-          textAnchor="middle"
-          fill="#fff"
-          fontSize="9"
-          fontWeight="700"
-        >
-          !
-        </text>
-      </g>
-      <g transform="translate(300,170)">
-        <circle
-          r="14"
-          fill="rgba(255,179,71,0.2)"
-          stroke="var(--amber)"
-          strokeWidth="1.5"
-        >
-          <animate
-            attributeName="r"
-            values="14;22;14"
-            dur="2s"
-            repeatCount="indefinite"
-          />
-          <animate
-            attributeName="opacity"
-            values="1;0.3;1"
-            dur="2s"
-            repeatCount="indefinite"
-          />
-        </circle>
-        <circle r="7" fill="var(--amber)" />
-        <text
-          y="4"
-          textAnchor="middle"
-          fill="#fff"
-          fontSize="9"
-          fontWeight="700"
-        >
-          !
-        </text>
-      </g>
-      {/* resolved pin */}
-      <g transform="translate(410,270)">
-        <circle r="7" fill="var(--green)" opacity="0.7" />
-        <text
-          y="4"
-          textAnchor="middle"
-          fill="#fff"
-          fontSize="9"
-          fontWeight="700"
-        >
-          ✓
-        </text>
-      </g>
-      {/* staff dots */}
-      <circle cx="295" cy="95" r="5" fill="var(--blue)" opacity="0.9">
-        <animate
-          attributeName="opacity"
-          values="0.9;0.4;0.9"
-          dur="1.2s"
-          repeatCount="indefinite"
-        />
-      </circle>
-      <circle cx="310" cy="95" r="5" fill="var(--blue)" opacity="0.9">
-        <animate
-          attributeName="opacity"
-          values="0.9;0.4;0.9"
-          dur="1.4s"
-          repeatCount="indefinite"
-        />
-      </circle>
-      <circle cx="270" cy="165" r="5" fill="var(--blue)" opacity="0.9">
-        <animate
-          attributeName="opacity"
-          values="0.9;0.4;0.9"
-          dur="1.6s"
-          repeatCount="indefinite"
-        />
-      </circle>
-      {/* labels */}
-      <text
-        x="300"
-        y="15"
-        textAnchor="middle"
         fill="rgba(0,200,255,0.4)"
         fontSize="10"
-        fontFamily="Inter"
-        fontWeight="600"
+        fontFamily="var(--font-mono)"
       >
-        FLOOR 12 — LIVE VIEW
+        B2 PARKING AREA
       </text>
+
+      {/* dynamic incident pins */}
+      {incidents.map((inc, i) => {
+        const { x, y, color } = getCoords(inc.location);
+        const isCritical =
+          inc.sev === "CRITICAL" || inc.severity === "CRITICAL";
+        const isResolved = inc.status === "RESOLVED";
+
+        return (
+          <g key={inc.id || i} transform={`translate(${x},${y})`}>
+            {!isResolved && (
+              <circle r="12" fill={color} opacity="0.2">
+                <animate
+                  attributeName="r"
+                  values="12;20;12"
+                  dur={isCritical ? "1.2s" : "2s"}
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0.3;0.1;0.3"
+                  dur={isCritical ? "1.2s" : "2s"}
+                  repeatCount="indefinite"
+                />
+              </circle>
+            )}
+            <circle r={6} fill={isResolved ? "var(--green)" : color} />
+            <text
+              y="3"
+              textAnchor="middle"
+              fill="#fff"
+              fontSize="8"
+              fontWeight="900"
+            >
+              {isResolved ? "✓" : "!"}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* staff dots - simplified */}
+      <circle cx="270" cy="80" r="4" fill="var(--blue)" opacity="0.8" />
+      <circle cx="320" cy="180" r="4" fill="var(--blue)" opacity="0.8" />
+      <circle cx="100" cy="280" r="4" fill="var(--blue)" opacity="0.8" />
     </svg>
   );
 }
@@ -396,10 +327,12 @@ function FloorMapSVG({ incidents }) {
 export default function DashboardPage() {
   const [incidents, setIncidents] = useState(INITIAL_INCIDENTS);
   const [timeline, setTimeline] = useState(TIMELINE);
+  const [selected, setSelected] = useState(INITIAL_INCIDENTS[0]);
+  const [time, setTime] = useState("");
 
   useEffect(() => {
     // Fetch existing incidents
-    fetch("http://localhost:3001/api/incidents")
+    fetch(`${BACKEND_URL}/api/incidents`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.length > 0) {
@@ -407,38 +340,53 @@ export default function DashboardPage() {
             ...inc,
             ts: new Date(inc.createdAt).toLocaleTimeString(),
             sev: inc.severity,
+            status: inc.status === "OPEN" ? "ACTIVE" : inc.status,
+            ai: inc.metadata
+              ? JSON.parse(inc.metadata).summary
+              : "Analyzing...",
+            assigned: "First Response Team",
+            eta: inc.severity === "CRITICAL" ? "2:00" : "5:00",
             color: inc.severity === "CRITICAL" ? "var(--red)" : "var(--amber)",
           }));
           setIncidents(formatted);
+          setSelected(formatted[0]);
         }
       })
       .catch((err) => console.error("Failed to fetch incidents:", err));
 
     socket.on("incident-update", (newIncident) => {
-      console.log("Received incident update:", newIncident);
-
       setIncidents((prev) => {
         const index = prev.findIndex((inc) => inc.id === newIncident.id);
+        const formatted = {
+          ...newIncident,
+          ts: new Date().toLocaleTimeString(),
+          sev: newIncident.severity,
+          status: newIncident.status === "OPEN" ? "ACTIVE" : newIncident.status,
+          ai: newIncident.metadata
+            ? typeof newIncident.metadata === "string"
+              ? JSON.parse(newIncident.metadata).summary
+              : newIncident.metadata.summary
+            : "Analyzing...",
+          assigned: "Dispatched",
+          eta: newIncident.severity === "CRITICAL" ? "1:45" : "4:30",
+          color:
+            newIncident.severity === "CRITICAL" ? "var(--red)" : "var(--amber)",
+        };
+
         if (index !== -1) {
           const updated = [...prev];
-          updated[index] = {
-            ...updated[index],
-            ...newIncident,
-            ts: new Date().toLocaleTimeString(),
-          };
+          updated[index] = formatted;
           return updated;
         }
-        return [
-          { ...newIncident, ts: new Date().toLocaleTimeString() },
-          ...prev,
-        ];
+        return [formatted, ...prev];
       });
 
       setTimeline((prev) => [
         {
           t: new Date().toLocaleTimeString(),
-          txt: `Incident updated: ${newIncident.type} at ${newIncident.location}`,
-          dot: "pulse-red",
+          txt: `${newIncident.type} at ${newIncident.location} - Status: ${newIncident.status}`,
+          dot:
+            newIncident.severity === "CRITICAL" ? "pulse-red" : "pulse-amber",
         },
         ...prev,
       ]);
@@ -446,12 +394,19 @@ export default function DashboardPage() {
 
     return () => socket.off("incident-update");
   }, []);
-  const [selected, setSelected] = useState(INITIAL_INCIDENTS[0]);
-  const [time, setTime] = useState("");
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Dynamic stats
+  const stats = {
+    active: incidents.filter((i) => i.status === "ACTIVE").length,
+    critical: incidents.filter((i) => i.sev === "CRITICAL").length,
+    resolved: incidents.filter((i) => i.status === "RESOLVED").length,
+    total: incidents.length,
+  };
 
   return (
     <main
@@ -464,14 +419,7 @@ export default function DashboardPage() {
     >
       <div className="container" style={{ paddingTop: 24, paddingBottom: 40 }}>
         {/* header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-          }}
-        >
+        <div className="flex-between" style={{ marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>
               🖥️ War Room{" "}
@@ -484,7 +432,7 @@ export default function DashboardPage() {
             </h1>
             <p
               style={{
-                color: "var(--text-muted)",
+                color: "var(--text-secondary)",
                 fontSize: 13,
                 fontFamily: "var(--font-mono)",
               }}
@@ -493,56 +441,41 @@ export default function DashboardPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <Link
-              href="/triage"
-              className="btn btn-ghost"
-              style={{ fontSize: 13 }}
-            >
+            <Link href="/triage" className="btn btn-ghost">
               🧠 AI Triage
             </Link>
-            <Link
-              href="/sos"
-              className="btn btn-danger"
-              style={{ fontSize: 13 }}
-            >
+            <Link href="/sos" className="btn btn-danger">
               🆘 New SOS
             </Link>
           </div>
         </div>
 
         {/* top stats */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4,1fr)",
-            gap: 14,
-            marginBottom: 24,
-          }}
-        >
+        <div className="grid-4" style={{ marginBottom: 24 }}>
           {[
             {
               label: "Active Incidents",
-              val: "2",
+              val: stats.active,
               color: "var(--red)",
               icon: "🔴",
             },
             {
-              label: "Staff Deployed",
-              val: "4",
+              label: "Critical Priority",
+              val: stats.critical,
               color: "var(--amber)",
-              icon: "👥",
+              icon: "🔥",
             },
             {
-              label: "Avg Response Time",
-              val: "1:52",
-              color: "var(--blue)",
-              icon: "⏱",
-            },
-            {
-              label: "Incidents Today",
-              val: "7",
+              label: "Resolved Today",
+              val: stats.resolved,
               color: "var(--green)",
-              icon: "📋",
+              icon: "✅",
+            },
+            {
+              label: "Total Alerts",
+              val: stats.total,
+              color: "var(--blue)",
+              icon: "📊",
             },
           ].map((s, i) => (
             <div key={i} className="stat-card">
@@ -551,7 +484,7 @@ export default function DashboardPage() {
               </div>
               <div
                 className="stat-value"
-                style={{ color: s.color, fontSize: 30 }}
+                style={{ color: s.color, fontSize: 32 }}
               >
                 {s.val}
               </div>
@@ -560,63 +493,44 @@ export default function DashboardPage() {
         </div>
 
         {/* main grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1.6fr 1fr",
-            gap: 16,
-            marginBottom: 16,
-          }}
-        >
+        <div className="war-room-grid">
           {/* incidents list */}
-          <div className="glass" style={{ padding: 20 }}>
+          <div
+            className="glass"
+            style={{ display: "flex", flexDirection: "column", height: 500 }}
+          >
+            <div className="panel-header">
+              <span className="panel-title">Active Incidents</span>
+              <span className="badge badge-red">{stats.active} LIVE</span>
+            </div>
             <div
               style={{
-                fontWeight: 700,
-                fontSize: 14,
-                marginBottom: 16,
+                flex: 1,
+                overflowY: "auto",
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                flexDirection: "column",
               }}
             >
-              Active Incidents
-              <span className="badge badge-red">
-                {incidents.filter((i) => i.status === "ACTIVE").length} LIVE
-              </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {incidents.map((inc) => (
                 <div
                   key={inc.id}
-                  className="incident-row"
+                  className={`incident-item ${selected?.id === inc.id ? "selected" : ""}`}
                   onClick={() => setSelected(inc)}
-                  style={{
-                    borderColor:
-                      selected?.id === inc.id ? "var(--blue)" : "var(--border)",
-                  }}
                 >
                   <span
                     className={`pulse-dot ${inc.status === "ACTIVE" ? (inc.sev === "CRITICAL" ? "pulse-red" : "pulse-amber") : "pulse-green"}`}
+                    style={{ marginTop: 4 }}
                   />
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
+                  <div>
+                    <div className="flex-between">
                       <span
                         style={{
-                          fontWeight: 600,
+                          fontWeight: 700,
                           fontSize: 13,
                           color:
                             inc.sev === "CRITICAL"
                               ? "var(--red)"
-                              : inc.sev === "HIGH"
-                                ? "var(--amber)"
-                                : "var(--green)",
+                              : "var(--amber)",
                         }}
                       >
                         {inc.type}
@@ -624,27 +538,32 @@ export default function DashboardPage() {
                       <span
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: 11,
+                          fontSize: 10,
                           color: "var(--text-muted)",
                         }}
                       >
-                        {inc.id}
+                        {inc.id.toString().slice(-4)}
                       </span>
                     </div>
                     <div
                       style={{
                         fontSize: 12,
-                        color: "var(--text-muted)",
-                        marginTop: 2,
+                        color: "var(--text-secondary)",
+                        marginTop: 4,
                       }}
                     >
                       {inc.location}
                     </div>
-                    {inc.status === "ACTIVE" && (
-                      <div style={{ marginTop: 6 }}>
-                        <ETATimer init={inc.id === "#1047" ? 167 : 252} />
-                      </div>
-                    )}
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--text-muted)",
+                        marginTop: 4,
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {inc.ts}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -652,168 +571,163 @@ export default function DashboardPage() {
           </div>
 
           {/* floor map */}
-          <div className="glass" style={{ padding: 20 }}>
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 14,
-                marginBottom: 12,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              Live Floor Map
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                  fontSize: 12,
-                }}
-              >
+          <div
+            className="glass"
+            style={{ padding: 0, display: "flex", flexDirection: "column" }}
+          >
+            <div className="panel-header">
+              <span className="panel-title">Live Floor Map</span>
+              <div style={{ display: "flex", gap: 12, fontSize: 10 }}>
                 <span style={{ color: "var(--red)" }}>● Critical</span>
-                <span style={{ color: "var(--amber)" }}>● High</span>
                 <span style={{ color: "var(--blue)" }}>● Staff</span>
-                <span style={{ color: "var(--green)" }}>● Resolved</span>
               </div>
             </div>
-            <div className="floor-map" style={{ height: 300 }}>
+            <div
+              className="floor-map"
+              style={{ flex: 1, minHeight: 400, padding: 20 }}
+            >
               <FloorMapSVG incidents={incidents} />
-            </div>
-            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              {["Floor 12", "B2 Parking", "Ballroom", "All Floors"].map((f) => (
-                <button
-                  key={f}
-                  className="btn btn-ghost"
-                  style={{ fontSize: 12, padding: "6px 12px" }}
-                >
-                  {f}
-                </button>
-              ))}
             </div>
           </div>
 
           {/* incident detail */}
-          <div className="glass" style={{ padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
-              Incident Detail — {selected?.id}
+          <div
+            className="glass"
+            style={{ display: "flex", flexDirection: "column" }}
+          >
+            <div className="panel-header">
+              <span className="panel-title">Incident Details</span>
             </div>
-            {selected && (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 14 }}
-              >
-                <div
-                  className={`alert-banner ${selected.sev === "CRITICAL" ? "alert-critical" : selected.sev === "HIGH" ? "alert-warning" : "alert-info"}`}
-                >
-                  <span style={{ fontSize: 20 }}>
-                    {selected.sev === "CRITICAL"
-                      ? "🚨"
-                      : selected.sev === "HIGH"
-                        ? "⚠️"
-                        : "ℹ️"}
-                  </span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>
-                      {selected.type}
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.8 }}>
-                      {selected.location}
-                    </div>
-                  </div>
-                </div>
-                <div className="glass-sm" style={{ padding: 14 }}>
+            <div
+              style={{
+                padding: 20,
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              {selected ? (
+                <>
                   <div
+                    className={`alert-banner ${selected.sev === "CRITICAL" ? "alert-critical" : "alert-warning"}`}
                     style={{
-                      fontSize: 11,
-                      color: "var(--text-muted)",
-                      marginBottom: 6,
-                      fontWeight: 600,
-                      letterSpacing: "0.08em",
+                      padding: 16,
+                      borderRadius: "var(--radius-md)",
+                      background:
+                        selected.sev === "CRITICAL"
+                          ? "var(--red-glow)"
+                          : "var(--amber-glow)",
+                      border: `1px solid ${selected.sev === "CRITICAL" ? "var(--red)" : "var(--amber)"}`,
+                      display: "flex",
+                      gap: 16,
                     }}
                   >
-                    AI CLASSIFICATION
+                    <span style={{ fontSize: 24 }}>
+                      {selected.sev === "CRITICAL" ? "🚨" : "⚠️"}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15 }}>
+                        {selected.type}
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.9 }}>
+                        {selected.location}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 13, color: "var(--blue)" }}>
-                    {selected.ai}
+
+                  <div className="glass-sm" style={{ padding: 16 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--text-muted)",
+                        marginBottom: 6,
+                        fontWeight: 800,
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      AI ANALYSIS & TRIAGE
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--blue)",
+                        lineHeight: 1.5,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {selected.ai}
+                    </div>
                   </div>
-                </div>
+
+                  <div className="grid-2">
+                    <div className="glass-sm" style={{ padding: 12 }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "var(--text-muted)",
+                          marginBottom: 6,
+                        }}
+                      >
+                        STATUS
+                      </div>
+                      <span
+                        className={`badge ${selected.status === "ACTIVE" ? "badge-red" : "badge-green"}`}
+                      >
+                        {selected.status}
+                      </span>
+                    </div>
+                    <div className="glass-sm" style={{ padding: 12 }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "var(--text-muted)",
+                          marginBottom: 6,
+                        }}
+                      >
+                        ETA
+                      </div>
+                      <span className="eta-badge">{selected.eta}</span>
+                    </div>
+                  </div>
+
+                  <div className="glass-sm" style={{ padding: 16 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--text-muted)",
+                        marginBottom: 6,
+                        fontWeight: 800,
+                      }}
+                    >
+                      RESPONSE TEAM
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                      {selected.assigned}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: "auto", display: "flex", gap: 10 }}>
+                    <button className="btn btn-primary" style={{ flex: 1 }}>
+                      Dispatch
+                    </button>
+                    <button className="btn btn-ghost" style={{ flex: 1 }}>
+                      Resolve
+                    </button>
+                  </div>
+                </>
+              ) : (
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
+                    color: "var(--text-muted)",
+                    textAlign: "center",
+                    marginTop: 40,
                   }}
                 >
-                  <div className="glass-sm" style={{ padding: 12 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      STATUS
-                    </div>
-                    <span
-                      className={`badge ${selected.status === "ACTIVE" ? "badge-red" : "badge-green"}`}
-                    >
-                      {selected.status}
-                    </span>
-                  </div>
-                  <div className="glass-sm" style={{ padding: 12 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      ETA
-                    </div>
-                    <span
-                      style={{
-                        color: "var(--amber)",
-                        fontWeight: 700,
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      {selected.eta}
-                    </span>
-                  </div>
+                  Select an incident to view details
                 </div>
-                <div className="glass-sm" style={{ padding: 14 }}>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-muted)",
-                      marginBottom: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    ASSIGNED STAFF
-                  </div>
-                  <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    {selected.assigned}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Link
-                    href="/staff"
-                    className="btn btn-primary"
-                    style={{ flex: 1, justifyContent: "center", fontSize: 12 }}
-                  >
-                    👥 Staff Ops
-                  </Link>
-                  <Link
-                    href="/report"
-                    className="btn btn-ghost"
-                    style={{ flex: 1, justifyContent: "center", fontSize: 12 }}
-                  >
-                    📋 Report
-                  </Link>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -824,10 +738,16 @@ export default function DashboardPage() {
           {/* staff status */}
           <div className="glass" style={{ padding: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
-              Staff Status Board
+              Response Personnel
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {STAFF.map((s, i) => (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+              }}
+            >
+              {STAFF.slice(0, 4).map((s, i) => (
                 <div
                   key={i}
                   className="glass-sm"
@@ -840,41 +760,34 @@ export default function DashboardPage() {
                 >
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
+                      width: 32,
+                      height: 32,
                       borderRadius: "50%",
                       background: "var(--blue-glow)",
                       border: "1px solid var(--blue)",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyCenter: "center",
                       fontSize: 14,
-                      flexShrink: 0,
                     }}
                   >
                     {s.role === "Security"
                       ? "🛡️"
                       : s.role === "Nurse"
                         ? "💊"
-                        : s.role === "Fire Safety"
-                          ? "🔥"
-                          : "🎩"}
+                        : "🔥"}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>
-                      {s.name}{" "}
-                      <span
-                        style={{ fontSize: 11, color: "var(--text-muted)" }}
-                      >
-                        · {s.role}
-                      </span>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>
+                      {s.name}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                      Floor {s.floor} {s.incident ? `· ${s.incident}` : ""}
+                    <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                      {s.role} · Floor {s.floor}
                     </div>
                   </div>
                   <span
-                    className={`badge ${s.status === "RESPONDING" || s.status === "ENROUTE" ? "badge-red" : s.status === "RESOLVED" ? "badge-green" : "badge-blue"}`}
+                    className={`badge ${s.status === "STANDBY" ? "badge-blue" : "badge-red"}`}
+                    style={{ fontSize: 9 }}
                   >
                     {s.status}
                   </span>
@@ -884,28 +797,30 @@ export default function DashboardPage() {
           </div>
 
           {/* activity timeline */}
-          <div
-            className="glass"
-            style={{ padding: 20, overflowY: "auto", maxHeight: 360 }}
-          >
+          <div className="glass" style={{ padding: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
-              Activity Timeline
+              Operational Log
             </div>
-            <div className="timeline">
-              {timeline.map((e, i) => (
+            <div
+              className="timeline"
+              style={{ maxHeight: 180, overflowY: "auto" }}
+            >
+              {timeline.slice(0, 5).map((e, i) => (
                 <div key={i} className="tl-item">
                   <div className="tl-line">
                     <span
                       className={`pulse-dot ${e.dot}`}
-                      style={{ width: 10, height: 10 }}
+                      style={{ width: 8, height: 8 }}
                     />
-                    {i < timeline.length - 1 && (
-                      <div className="tl-connector" />
-                    )}
+                    {i < 4 && <div className="tl-connector" />}
                   </div>
                   <div className="tl-content">
-                    <div className="tl-time">{e.t}</div>
-                    <div className="tl-text">{e.txt}</div>
+                    <div className="tl-time" style={{ fontSize: 10 }}>
+                      {e.t}
+                    </div>
+                    <div className="tl-text" style={{ fontSize: 11 }}>
+                      {e.txt}
+                    </div>
                   </div>
                 </div>
               ))}
