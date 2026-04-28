@@ -51,11 +51,9 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// Get all incidents (Manager/Staff only)
+// Get all incidents (Public for demo/dashboard)
 router.get(
   "/",
-  auth,
-  authorize(["STAFF", "MANAGER", "RESPONDER"]),
   async (req, res) => {
     try {
       const incidents = await prisma.incident.findMany({
