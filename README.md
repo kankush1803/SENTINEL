@@ -13,7 +13,7 @@ graph TD
     subguest[Guest SOS Mobile App] -->|WebSocket/REST| backend[Central Node.js Backend]
     subsensors[IoT Sensors & Simulator] -->|REST API| backend
     
-    backend -->|HTTP POST| ai[AI Triage Engine Python/Flask]
+    backend -->|HTTP POST| ai[AI Triage Engine Node.js]
     ai -->|Returns Triage Result| backend
     
     backend <-->|WebSocket| dashboard[War Room Dashboard Next.js]
@@ -53,7 +53,7 @@ sequenceDiagram
 1. **Dashboard (Next.js)**: The War Room UI for security operators. Interactive floor maps, active incident feeds, and live AI triage results.
 2. **Frontend (Vite)**: Secondary UI / Staff View for real-time mobile tracking and responses.
 3. **Backend (Node.js/Express/Prisma)**: Core router handling WebSocket connections, data persistence, and API logic.
-4. **AI-Service (Python/Flask)**: Receives incident descriptions and uses LLM to instantly classify the emergency (Fire, Medical, Security, etc.) and assign severity.
+4. **AI-Service (Node.js/Express)**: Receives incident descriptions and uses LLM (Claude) to instantly classify the emergency (Fire, Medical, Security, etc.) and assign severity.
 5. **Mobile (React Native/Expo)**: The Guest SOS portal and Staff response application.
 6. **Simulator**: A testing tool to dispatch fake IoT sensor alerts and SOS triggers into the system for demonstration.
 
@@ -73,9 +73,9 @@ npm run dev
 ### 2. AI Triage Service
 ```bash
 cd ai-service
-pip install -r requirements.txt
-# Set up .env with GROQ_API_KEY / ANTHROPIC_API_KEY
-python app.py
+npm install
+# Set up .env with ANTHROPIC_API_KEY / OPENAI_API_KEY
+npm start (or node index.js)
 ```
 
 ### 3. Dashboard
