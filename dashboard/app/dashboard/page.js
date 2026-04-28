@@ -398,6 +398,22 @@ export default function DashboardPage() {
   const [timeline, setTimeline] = useState(TIMELINE);
 
   useEffect(() => {
+    // Fetch existing incidents
+    fetch("http://localhost:3001/api/incidents")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.length > 0) {
+          const formatted = data.map((inc) => ({
+            ...inc,
+            ts: new Date(inc.createdAt).toLocaleTimeString(),
+            sev: inc.severity,
+            color: inc.severity === "CRITICAL" ? "var(--red)" : "var(--amber)",
+          }));
+          setIncidents(formatted);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch incidents:", err));
+
     socket.on("incident-update", (newIncident) => {
       console.log("Received incident update:", newIncident);
 
