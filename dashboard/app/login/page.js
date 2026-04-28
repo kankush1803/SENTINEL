@@ -33,7 +33,11 @@ export default function LoginPage() {
       // Force a full refresh to update the layout state
       setTimeout(() => window.location.reload(), 100);
     } catch (err) {
-      setError(err.message);
+      if (err.message === "Failed to fetch" && window.location.protocol === "https:") {
+        setError("Network Error: Cannot connect to local backend (localhost:3001) from a live HTTPS site due to browser security. Please test on http://localhost:3003/login or deploy the backend.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
