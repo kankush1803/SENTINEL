@@ -15,7 +15,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/auth/register`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -33,7 +33,7 @@ export default function RegisterPage() {
       setTimeout(() => window.location.reload(), 100);
     } catch (err) {
       if (err.message === "Failed to fetch" && window.location.protocol === "https:") {
-        setError("Network Error: Cannot connect to local backend (localhost:3001) from a live HTTPS site due to browser security. Please test on http://localhost:3003/register or deploy the backend.");
+        setError("Network Error: Cannot connect to local backend (localhost:4000) from a live HTTPS site due to browser security. Please test on http://localhost:3003/register or deploy the backend.");
       } else {
         setError(err.message);
       }

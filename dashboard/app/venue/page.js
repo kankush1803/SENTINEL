@@ -7,7 +7,7 @@ export default function VenuePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/venue/structure")
+    fetch("http://localhost:4000/api/venue/structure")
       .then((res) => res.json())
       .then((data) => {
         setStructure(data);

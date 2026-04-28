@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3001");
+const socket = io("http://localhost:4000");
 
 const ROOM = "Room 1204";
 const FLOOR = "12th Floor";

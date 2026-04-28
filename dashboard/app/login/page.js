@@ -19,31 +19,47 @@ export default function LoginPage() {
 
     // Handle OTP flow
     if (authMode === "otp" && !otpSent) {
-      setTimeout(() => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/send-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to send OTP");
         setOtpSent(true);
+      } catch (err) {
+        setError(err.message);
+      } finally {
         setLoading(false);
-      }, 1500);
+      }
       return;
     }
 
     if (authMode === "otp" && otpSent) {
-      if (otpCode === "123456") {
-        // Mock successful OTP login
-        const mockUser = { id: "otp-user", name: "Guest User", email: formData.email, role: "GUEST" };
-        localStorage.setItem("sentinel_token", "mock-otp-token");
-        localStorage.setItem("sentinel_user", JSON.stringify(mockUser));
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/verify-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email, code: otpCode }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Verification failed");
+
+        localStorage.setItem("sentinel_token", data.token);
+        localStorage.setItem("sentinel_user", JSON.stringify(data.user));
         router.push("/dashboard");
         setTimeout(() => window.location.reload(), 100);
-        return;
-      } else {
-        setError("Invalid OTP code. Please try 123456 for the demo.");
+      } catch (err) {
+        setError(err.message);
+      } finally {
         setLoading(false);
-        return;
       }
+      return;
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/auth/login`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -59,7 +75,7 @@ export default function LoginPage() {
       setTimeout(() => window.location.reload(), 100);
     } catch (err) {
       if (err.message === "Failed to fetch" && window.location.protocol === "https:") {
-        setError("Network Error: Cannot connect to local backend (localhost:3001) from a live HTTPS site. Please test on http://localhost:3003/login");
+        setError("Network Error: Cannot connect to local backend (localhost:4000) from a live HTTPS site. Please test on http://localhost:3003/login");
       } else {
         setError(err.message);
       }
@@ -85,10 +101,12 @@ export default function LoginPage() {
           
           <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", padding: 4, borderRadius: 8, marginTop: 20 }}>
             <button 
+              type="button"
               onClick={() => {setAuthMode("password"); setOtpSent(false);}}
               style={{ flex: 1, padding: "8px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, background: authMode === "password" ? "var(--blue)" : "transparent", color: "#fff" }}
             >PASSWORD</button>
             <button 
+              type="button"
               onClick={() => setAuthMode("otp")}
               style={{ flex: 1, padding: "8px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, background: authMode === "otp" ? "var(--blue)" : "transparent", color: "#fff" }}
             >GOOGLE OTP</button>
