@@ -1,5 +1,5 @@
 const express = require("express");
-const Anthropic = require("@anthropic-ai/sdk");
+const Groq = require("groq-sdk");
 const OpenAI = require("openai");
 const cors = require("cors");
 require("dotenv").config();
@@ -8,8 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const anthropic = process.env.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
   : null;
 
 const openai = process.env.OPENAI_API_KEY
@@ -19,8 +19,8 @@ const openai = process.env.OPENAI_API_KEY
 app.post("/triage", async (req, res) => {
   const { description } = req.body;
 
-  if (!anthropic) {
-    console.warn("Anthropic API Key missing. Using Mock AI Triage Mode.");
+  if (!groq) {
+    console.warn("Groq API Key missing. Using Mock AI Triage Mode.");
 
     // Mock Triage Logic for Hackathon Prototype
     const mockTriage = {
@@ -47,29 +47,34 @@ app.post("/triage", async (req, res) => {
   }
 
   try {
-    const msg = await anthropic.messages.create({
-      model: "claude-3-7-sonnet-20250219",
-      max_tokens: 1024,
-      system:
-        "You are an AI Triage Engine for a hospitality emergency response system. Your goal is to analyze the incident, classify it, and provide a response protocol. Return a JSON object with: classification (FIRE, MEDICAL, SECURITY, etc.), severity (LOW, MEDIUM, HIGH, CRITICAL), response_protocol (step-by-step instructions), and recommended_roles (e.g., [SECURITY, MEDICAL_STAFF]).",
+    const chatCompletion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "user", content: `Triage this emergency: ${description}` },
+        {
+          role: "system",
+          content:
+            "You are an AI Triage Engine for a hospitality emergency response system. Your goal is to analyze the incident, classify it, and provide a response protocol. Return ONLY a JSON object with no markdown formatting. The JSON must contain exactly these fields: classification (FIRE, MEDICAL, SECURITY, etc.), severity (LOW, MEDIUM, HIGH, CRITICAL), response_protocol (array of step-by-step string instructions), and recommended_roles (e.g., [\"SECURITY\", \"MEDICAL_STAFF\"]).",
+        },
+        {
+          role: "user",
+          content: `Triage this emergency: ${description}`,
+        },
       ],
+      temperature: 0.2,
+      max_tokens: 1024,
+      response_format: { type: "json_object" },
     });
 
-    // Attempt to extract JSON from Claude's response if it's wrapped in text
-    let triageData = msg.content[0].text;
+    let triageData = chatCompletion.choices[0]?.message?.content;
     try {
-      const jsonMatch = triageData.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        triageData = JSON.parse(jsonMatch[0]);
-      }
+      triageData = JSON.parse(triageData);
     } catch (e) {
-      console.error("Failed to parse Claude JSON response");
+      console.error("Failed to parse Groq JSON response", e);
     }
 
     res.json({ triage: triageData });
   } catch (error) {
+    console.error("Groq Triage Error:", error);
     res.status(500).json({ error: error.message });
   }
 });

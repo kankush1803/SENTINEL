@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import "./globals.css";
 
+import { useState, useEffect } from "react";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
@@ -24,6 +26,24 @@ export default function RootLayout({ children }) {
 
 function Nav() {
   const pathname = usePathname();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("sentinel_user");
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {}
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("sentinel_user");
+    localStorage.removeItem("sentinel_token");
+    setUser(null);
+    window.location.href = "/login";
+  };
+
   const links = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "War Room" },
@@ -69,8 +89,24 @@ function Nav() {
         ))}
       </div>
 
-      <div className="nav-alert">
-        <span className="pulse-dot pulse-red" />2 Active Incidents
+      <div className="nav-alert" style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+        {user ? (
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+              OP: <strong style={{ color: "var(--text-primary)" }}>{user.name}</strong>
+            </span>
+            <button 
+              onClick={handleLogout}
+              style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
+            >
+              LOGOUT
+            </button>
+          </div>
+        ) : (
+          <Link href="/login" className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "12px" }}>
+            LOGIN
+          </Link>
+        )}
       </div>
     </nav>
   );
