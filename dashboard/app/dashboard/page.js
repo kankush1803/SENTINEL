@@ -899,6 +899,9 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+
+          {/* operational log */}
+          <div className="glass" style={{ padding: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
               Operational Log
             </div>
@@ -927,6 +930,8 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+        </div>
+        </div>
         </div>
       </div>
     </main>
