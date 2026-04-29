@@ -1,29 +1,43 @@
-require("dotenv").config();
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
+const Pusher = require("pusher");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 require("dotenv").config();
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,
+  key: process.env.PUSHER_KEY,
+  secret: process.env.PUSHER_SECRET,
+  cluster: process.env.PUSHER_CLUSTER,
+  useTLS: true,
+});
 
 const authRoutes = require("./routes/auth");
 const incidentRoutes = require("./routes/incidents");
 const venueRoutes = require("./routes/venue");
 const prisma = require("./utils/db");
 const axios = require("axios");
+const twilio = require("twilio");
+const twilioClient = process.env.TWILIO_ACCOUNT_SID 
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+const multer = require("multer");
+const fs = require("fs");
+const FormData = require("form-data");
+const path = require("path");
+
+const upload = multer({ dest: "uploads/" });
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:5002";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST", "PUT"],
-  },
-});
-
-// Pass io instance to express app to be used in routes
-app.set("io", io);
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/incidents", incidentRoutes);
+app.use("/api/venue", venueRoutes);
 
 app.use(helmet());
 app.use(cors());
@@ -56,22 +70,34 @@ app.post("/api/alerts", async (req, res) => {
     });
 
     // Broadcast to dashboards
-    io.emit("incident-update", incident);
-    io.emit("new-alert", incident); // Support legacy event name
+    pusher.trigger("sentinel-channel", "incident-update", incident);
 
     // AI Triage
     axios
       .post("http://localhost:5002/triage", {
         description: `Alert Type: ${eventType}, Source: ${source}, Description: ${description}`,
       })
-      .then(async (aiRes) => {
-        const triageResult = aiRes.data.triage;
-        const updatedIncident = await prisma.incident.update({
+        .then(async (aiRes) => {
+          const triageResult = aiRes.data.triage;
+          const updatedIncident = await prisma.incident.update({
           where: { id: incident.id },
           data: { metadata: JSON.stringify(triageResult) },
         });
-        io.emit("incident-update", updatedIncident);
-      })
+        
+        pusher.trigger("sentinel-channel", "incident-update", updatedIncident);
+
+        // SMS Dispatch
+
+          // SMS Dispatch
+          if (twilioClient && process.env.STAFF_PHONE_NUMBER) {
+            const smsContent = `🚨 SENTINEL: [${triageResult.classification}] at ${incident.location}. Source: ${source}. Protocol: ${triageResult.response_protocol[0]}`;
+            twilioClient.messages.create({
+              body: smsContent,
+              from: process.env.TWILIO_PHONE_NUMBER,
+              to: process.env.STAFF_PHONE_NUMBER
+            }).catch(e => console.error("Simulator SMS failed:", e.message));
+          }
+        })
       .catch((err) =>
         console.error("AI Triage failed for alert:", err.message),
       );
@@ -90,63 +116,77 @@ app.post("/api/alerts", async (req, res) => {
   }
 });
 
-app.get("/health", (req, res) => {
+app.post("/api/transcribe", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No audio file provided." });
+  }
+
+  const filePath = req.file.path;
+
+  try {
+    const formData = new FormData();
+    formData.append("file", fs.createReadStream(filePath));
+
+    const response = await axios.post(`${AI_SERVICE_URL}/transcribe`, formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+    });
+
+    // Clean up
+    fs.unlinkSync(filePath);
+
+    res.json(response.data);
+  } catch (error) {
+    console.error("Transcription proxy error:", error.message);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.status(500).json({ error: "Failed to transcribe audio" });
+  }
+});
   res.json({
     status: "ok",
     message: "Rapid Crisis Response Backend is running",
   });
 });
 
-// Real-time communication logic
-io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
+// Pusher Trigger Helper (Optional but cleaner)
+app.post("/api/sos-trigger", async (req, res) => {
+  const data = req.body;
+  try {
+    const incident = await prisma.incident.create({
+      data: {
+        type: "SOS",
+        location: data.location || "Unknown Location",
+        description: data.description || "Emergency SOS triggered from mobile app",
+        severity: "CRITICAL",
+        status: "OPEN",
+        reporterId: data.userId || null,
+      },
+    });
 
-  socket.on("join-room", (room) => {
-    socket.join(room);
-    console.log(`User joined room: ${room}`);
-  });
+    pusher.trigger("sentinel-channel", "incident-update", incident);
 
-  socket.on("sos-trigger", async (data) => {
-    console.log("SOS Triggered via Socket:", data);
-    try {
-      const incident = await prisma.incident.create({
-        data: {
-          type: "SOS",
-          location: data.location || "Unknown Location",
-          description: "Emergency SOS triggered from mobile app",
-          severity: "CRITICAL",
-          status: "OPEN",
-          reporterId: data.userId || null,
-        },
-      });
+    // AI Triage
+    axios
+      .post("http://localhost:5002/triage", {
+        description: `SOS Triggered at ${data.location || "Unknown Location"}. User ID: ${data.userId || "guest"}`,
+      })
+      .then(async (aiRes) => {
+        const triageResult = aiRes.data.triage;
+        const updatedIncident = await prisma.incident.update({
+          where: { id: incident.id },
+          data: { metadata: JSON.stringify(triageResult) },
+        });
+        pusher.trigger("sentinel-channel", "incident-update", updatedIncident);
+      })
+      .catch((err) =>
+        console.error("AI Triage failed for SOS:", err.message),
+      );
 
-      io.emit("incident-update", incident);
-      io.emit("new-alert", incident);
-
-      // AI Triage
-      axios
-        .post("http://localhost:5002/triage", {
-          description: `SOS Triggered at ${data.location || "Unknown Location"}. User ID: ${data.userId || "guest"}`,
-        })
-        .then(async (aiRes) => {
-          const triageResult = aiRes.data.triage;
-          const updatedIncident = await prisma.incident.update({
-            where: { id: incident.id },
-            data: { metadata: JSON.stringify(triageResult) },
-          });
-          io.emit("incident-update", updatedIncident);
-        })
-        .catch((err) =>
-          console.error("AI Triage failed for SOS:", err.message),
-        );
-    } catch (err) {
-      console.error("Failed to process SOS trigger:", err);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+    res.status(201).json(incident);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to process SOS trigger" });
+  }
 });
 
 const PORT = process.env.PORT || 3001;

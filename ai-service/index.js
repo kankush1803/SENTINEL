@@ -2,7 +2,12 @@ const express = require("express");
 const Groq = require("groq-sdk");
 const OpenAI = require("openai");
 const cors = require("cors");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
+
+const upload = multer({ dest: "uploads/" });
 
 const app = express();
 app.use(cors());
@@ -34,6 +39,7 @@ app.post("/triage", async (req, res) => {
         description.toLowerCase().includes("fire")
           ? "CRITICAL"
           : "MEDIUM",
+      summary: `Potential ${description.toLowerCase().includes("fire") ? "fire" : description.toLowerCase().includes("medical") ? "medical" : "security"} incident requiring immediate attention.`,
       response_protocol: [
         "Assess immediate danger",
         "Notify nearest staff members",
@@ -53,7 +59,7 @@ app.post("/triage", async (req, res) => {
         {
           role: "system",
           content:
-            "You are an AI Triage Engine for a hospitality emergency response system. Your goal is to analyze the incident, classify it, and provide a response protocol. Return ONLY a JSON object with no markdown formatting. The JSON must contain exactly these fields: classification (FIRE, MEDICAL, SECURITY, etc.), severity (LOW, MEDIUM, HIGH, CRITICAL), response_protocol (array of step-by-step string instructions), and recommended_roles (e.g., [\"SECURITY\", \"MEDICAL_STAFF\"]).",
+            "You are an AI Triage Engine for a hospitality emergency response system. Your goal is to analyze the incident, classify it, and provide a response protocol. Return ONLY a JSON object with no markdown formatting. The JSON must contain exactly these fields: classification (FIRE, MEDICAL, SECURITY, etc.), severity (LOW, MEDIUM, HIGH, CRITICAL), summary (a concise one-line summary of the analysis), response_protocol (array of step-by-step string instructions), and recommended_roles (e.g., [\"SECURITY\", \"MEDICAL_STAFF\"]).",
         },
         {
           role: "user",
@@ -79,15 +85,34 @@ app.post("/triage", async (req, res) => {
   }
 });
 
-app.post("/transcribe", async (req, res) => {
+app.post("/transcribe", upload.single("file"), async (req, res) => {
   if (!openai) {
     return res.status(500).json({
-      error:
-        "OpenAI (Whisper) not configured. Please add OPENAI_API_KEY to .env",
+      error: "OpenAI (Whisper) not configured. Please add OPENAI_API_KEY to .env",
     });
   }
-  // Logic for Whisper transcription
-  res.json({ message: "Whisper transcription endpoint" });
+
+  if (!req.file) {
+    return res.status(400).json({ error: "No audio file provided." });
+  }
+
+  const filePath = req.file.path;
+
+  try {
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(filePath),
+      model: "whisper-1",
+    });
+
+    // Clean up the temporary file
+    fs.unlinkSync(filePath);
+
+    res.json({ text: transcription.text });
+  } catch (error) {
+    console.error("Whisper Transcription Error:", error);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 5002;
