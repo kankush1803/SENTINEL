@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BACKEND_URL } from "../api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function LoginPage() {
     // Handle OTP flow
     if (authMode === "otp" && !otpSent) {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/send-otp`, {
+        const res = await fetch(`${BACKEND_URL}/api/auth/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: formData.email }),
@@ -38,7 +39,7 @@ export default function LoginPage() {
 
     if (authMode === "otp" && otpSent) {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/verify-otp`, {
+        const res = await fetch(`${BACKEND_URL}/api/auth/verify-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: formData.email, code: otpCode }),
@@ -59,7 +60,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/login`, {
+      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

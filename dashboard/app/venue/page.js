@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { BACKEND_URL } from "../api";
 
 export default function VenuePage() {
   const [structure, setStructure] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/venue/structure")
+    fetch(`${BACKEND_URL}/api/venue/structure`)
       .then((res) => res.json())
       .then((data) => {
         setStructure(data);

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { BACKEND_URL, AI_SERVICE_URL } from "../api";
 
 const EMERGENCY_TYPES = [
   {
@@ -116,7 +117,7 @@ export default function TriagePage() {
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/incidents")
+    fetch(`${BACKEND_URL}/api/incidents`)
       .then((res) => res.json())
       .then((data) => {
         if (data && Array.isArray(data)) {
@@ -166,7 +167,7 @@ export default function TriagePage() {
 
     try {
       // Actual AI Call
-      const res = await fetch("http://localhost:5002/triage", {
+      const res = await fetch(`${AI_SERVICE_URL}/triage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: input }),
