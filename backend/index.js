@@ -73,8 +73,9 @@ app.post("/api/alerts", async (req, res) => {
     pusher.trigger("sentinel-channel", "incident-update", incident);
 
     // AI Triage
+    const AI_URL = process.env.AI_SERVICE_URL || "http://localhost:5002";
     axios
-      .post("http://localhost:5002/triage", {
+      .post(`${AI_URL}/triage`, {
         description: `Alert Type: ${eventType}, Source: ${source}, Description: ${description}`,
       })
         .then(async (aiRes) => {
@@ -168,8 +169,9 @@ app.post("/api/sos-trigger", async (req, res) => {
     pusher.trigger("sentinel-channel", "incident-update", incident);
 
     // AI Triage
+    const AI_URL = process.env.AI_SERVICE_URL || "http://localhost:5002";
     axios
-      .post("http://localhost:5002/triage", {
+      .post(`${AI_URL}/triage`, {
         description: `SOS Triggered at ${data.location || "Unknown Location"}. User ID: ${data.userId || "guest"}`,
       })
       .then(async (aiRes) => {
@@ -179,6 +181,17 @@ app.post("/api/sos-trigger", async (req, res) => {
           data: { metadata: JSON.stringify(triageResult) },
         });
         pusher.trigger("sentinel-channel", "incident-update", updatedIncident);
+
+        // --- LIVE STAFF DISPATCH (TWILIO) ---
+        if (twilioClient && process.env.STAFF_PHONE_NUMBER) {
+          const smsMessage = `🚨 SENTINEL LIVE SOS: [${triageResult.classification}] at ${incident.location}. Severity: ${triageResult.severity}. Action Required!`;
+          twilioClient.messages.create({
+            body: smsMessage,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: process.env.STAFF_PHONE_NUMBER
+          }).then(m => console.log("Live SMS Sent:", m.sid))
+            .catch(e => console.error("Live SMS Error:", e.message));
+        }
       })
       .catch((err) =>
         console.error("AI Triage failed for SOS:", err.message),
