@@ -1,9 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { io } from "socket.io-client";
+import Pusher from "pusher-js";
+import { BACKEND_URL } from "../api";
 
-const socket = io("http://localhost:4000");
+const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+});
 
 const ROOM = "Room 1204";
 const FLOOR = "12th Floor";
@@ -24,6 +27,9 @@ export default function SOSPage() {
   const [triageResult, setTriageResult] = useState(null);
   const [holding, setHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recorder, setRecorder] = useState(null);
+  const [transcribing, setTranscribing] = useState(false);
   const holdRef = { interval: null };
 
   // ETA countdown
@@ -58,24 +64,81 @@ export default function SOSPage() {
     setPhase("voice");
   }
 
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        await handleTranscription(blob);
+      };
+
+      mediaRecorder.start();
+      setRecorder(mediaRecorder);
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+      alert("Please allow microphone access to use voice SOS.");
+    }
+  }
+
+  function stopRecording() {
+    if (recorder) {
+      recorder.stop();
+      setIsRecording(false);
+      setRecorder(null);
+    }
+  }
+
+  async function handleTranscription(blob) {
+    setTranscribing(true);
+    const formData = new FormData();
+    formData.append("file", blob, "sos_voice.webm");
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/transcribe`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.text) {
+        setVoice(data.text);
+      }
+    } catch (err) {
+      console.error("Transcription failed:", err);
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
   function submitSOS() {
     setPhase("sent");
     setTyping(true);
 
-    // Send to backend via Socket
-    socket.emit("sos-trigger", {
-      location: `${ROOM} · ${FLOOR}`,
-      userId: "guest-123",
-      description: voice || `${category?.label} Emergency`,
-      category: category?.id,
+    // Send to backend via REST API
+    fetch(`${BACKEND_URL}/api/sos-trigger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: `${ROOM} · ${FLOOR}`,
+        userId: "guest-123",
+        description: voice || `${category?.label} Emergency`,
+        category: category?.id,
+      }),
     });
 
-    // Also listen for the update
-    socket.once("incident-update", (data) => {
-      console.log("Received triage from backend:", data);
+    const channel = pusher.subscribe("sentinel-channel");
+    channel.bind("incident-update", (data) => {
+      console.log("Received triage from Pusher:", data);
+      
+      // Only process if it's the latest incident or matching our criteria
+      // For demo, we just stop typing and show the result
       setTyping(false);
 
-      const triage = data.metadata ? JSON.parse(data.metadata) : null;
+      const triage = data.metadata ? (typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata) : null;
 
       setTriageResult({
         type: triage?.classification || category?.label || "Emergency",
@@ -86,6 +149,7 @@ export default function SOSPage() {
       });
 
       setTimeout(() => setPhase("tracking"), 800);
+      pusher.unsubscribe("sentinel-channel");
     });
 
     // Fallback if backend doesn't respond in time (for demo stability)
@@ -354,17 +418,50 @@ export default function SOSPage() {
                     {category?.label} Emergency
                   </h2>
                 </div>
+                <div style={{ position: "relative", textAlign: "center" }}>
+                  <button
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    className={`record-btn ${isRecording ? "recording" : ""}`}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: "50%",
+                      border: "none",
+                      background: isRecording ? "var(--red)" : "rgba(255,59,92,0.1)",
+                      color: isRecording ? "#fff" : "var(--red)",
+                      fontSize: 32,
+                      cursor: "pointer",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 10px",
+                      boxShadow: isRecording ? "0 0 30px var(--red)" : "none",
+                    }}
+                  >
+                    {isRecording ? "⏹️" : "🎤"}
+                  </button>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>
+                    {isRecording ? "RELEASE TO STOP" : "HOLD TO RECORD VOICE"}
+                  </div>
+                </div>
+
                 <textarea
                   value={voice}
                   onChange={(e) => setVoice(e.target.value)}
-                  placeholder="Tell us more (optional)..."
+                  placeholder={transcribing ? "Transcribing voice..." : "Tell us more (optional)..."}
                   className="input-field"
                   style={{
                     width: "100%",
                     minHeight: 100,
                     padding: 14,
                     resize: "none",
+                    opacity: transcribing ? 0.6 : 1,
                   }}
+                  disabled={transcribing}
                 />
                 <div
                   className="glass-sm"

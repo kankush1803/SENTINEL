@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { io } from "socket.io-client";
+import Pusher from "pusher-js";
 import { BACKEND_URL } from "../api";
 
-const socket = io(BACKEND_URL);
+const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+});
 
 const INITIAL_INCIDENTS = [
   {
@@ -100,6 +102,13 @@ const STAFF = [
     status: "ENROUTE",
     incident: "#1047",
   },
+];
+
+const SCENARIOS = [
+  { id: 1, label: "🔥 Fire Alarm", type: "FIRE", location: "Ballroom East · Floor 3", source: "IoT Sensor SM-402", desc: "Smoke detected in electrical closet" },
+  { id: 2, label: "💊 Medical SOS", type: "MEDICAL", location: "Pool Area · Floor 1", source: "Guest SOS", desc: "Guest unconscious near pool side" },
+  { id: 3, label: "🛡️ Security Breach", type: "SECURITY", location: "B2 Parking · Zone C", source: "AI Camera Feed", desc: "Unauthorised access to restricted server room" },
+  { id: 4, label: "📢 General SOS", type: "SOS", location: "Room 1204 · Floor 12", source: "Guest Mobile", desc: "Silent alarm triggered from guest room" },
 ];
 
 const TIMELINE = [
@@ -354,7 +363,9 @@ export default function DashboardPage() {
       })
       .catch((err) => console.error("Failed to fetch incidents:", err));
 
-    socket.on("incident-update", (newIncident) => {
+    const channel = pusher.subscribe("sentinel-channel");
+    
+    channel.bind("incident-update", (newIncident) => {
       setIncidents((prev) => {
         const index = prev.findIndex((inc) => inc.id === newIncident.id);
         const formatted = {
@@ -392,13 +403,53 @@ export default function DashboardPage() {
       ]);
     });
 
-    return () => socket.off("incident-update");
+    return () => {
+      pusher.unsubscribe("sentinel-channel");
+    };
   }, []);
+
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/incidents/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      setIncidents((prev) =>
+        prev.map((inc) => (inc.id === id ? { ...inc, status: data.status } : inc)),
+      );
+      if (selected?.id === id) {
+        setSelected({ ...selected, status: data.status });
+      }
+    } catch (err) {
+      console.error("Failed to update incident status:", err);
+    }
+  };
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  const triggerScenario = async (s) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/alerts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: s.type,
+          severity: s.type === "FIRE" || s.type === "MEDICAL" ? "CRITICAL" : "HIGH",
+          zone: s.location.split(" · ")[0],
+          floor: s.location.split(" · ")[1].replace("Floor ", ""),
+          source: s.source,
+          description: s.desc
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to trigger scenario:", err);
+    }
+  };
 
   // Dynamic stats
   const stats = {
@@ -702,18 +753,34 @@ export default function DashboardPage() {
                     >
                       RESPONSE TEAM
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>
-                      {selected.assigned}
+                    <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ flex: 1 }}
+                          onClick={() => handleStatusUpdate(selected.id, "RESOLVED")}
+                        >
+                          Resolve
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ flex: 1 }}
+                          onClick={async () => {
+                            await fetch(`${BACKEND_URL}/api/incidents/${selected.id}/dispatch`, { method: "POST" });
+                            alert("Manual Dispatch SMS Sent to Staff!");
+                          }}
+                        >
+                          Manual Dispatch
+                        </button>
+                      </div>
+                      <button 
+                        className="btn btn-ghost" 
+                        style={{ width: "100%" }}
+                        onClick={() => window.open(`${BACKEND_URL}/api/incidents/${selected.id}/report`, "_blank")}
+                      >
+                        PDF Report
+                      </button>
                     </div>
-                  </div>
-
-                  <div style={{ marginTop: "auto", display: "flex", gap: 10 }}>
-                    <button className="btn btn-primary" style={{ flex: 1 }}>
-                      Dispatch
-                    </button>
-                    <button className="btn btn-ghost" style={{ flex: 1 }}>
-                      Resolve
-                    </button>
                   </div>
                 </>
               ) : (
@@ -797,7 +864,41 @@ export default function DashboardPage() {
           </div>
 
           {/* activity timeline */}
+          <div className="glass" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
+              Activity Timeline
+            </div>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {timeline.map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                  <div className={`pulse-dot ${item.dot}`} style={{ marginTop: 4 }} />
+                  <div>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{item.t}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{item.txt}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* crisis playbook */}
           <div className="glass" style={{ padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
+              Crisis Playbook (Demo Simulator)
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {SCENARIOS.map((s) => (
+                <button
+                  key={s.id}
+                  className="btn btn-ghost"
+                  style={{ fontSize: 12, padding: "10px", justifyContent: "flex-start" }}
+                  onClick={() => triggerScenario(s)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
               Operational Log
             </div>

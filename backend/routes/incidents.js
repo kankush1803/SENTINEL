@@ -2,6 +2,21 @@ const express = require("express");
 const prisma = require("../utils/db");
 const { auth, authorize } = require("../middleware/auth");
 const axios = require("axios");
+const twilio = require("twilio");
+const { generateIncidentReport } = require("../utils/reportGenerator");
+const Pusher = require("pusher");
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,
+  key: process.env.PUSHER_KEY,
+  secret: process.env.PUSHER_SECRET,
+  cluster: process.env.PUSHER_CLUSTER,
+  useTLS: true,
+});
+
+const twilioClient = process.env.TWILIO_ACCOUNT_SID 
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
 
 const router = express.Router();
 
@@ -22,7 +37,7 @@ router.post("/", async (req, res) => {
     });
 
     // Emit initial incident
-    req.app.get("io").emit("incident-update", incident);
+    pusher.trigger("sentinel-channel", "incident-update", incident);
 
     // Call AI Service for Triage asynchronously
     axios
@@ -41,15 +56,25 @@ router.post("/", async (req, res) => {
         });
 
         // Emit updated incident with AI metadata
-        req.app.get("io").emit("incident-update", updatedIncident);
+        pusher.trigger("sentinel-channel", "incident-update", updatedIncident);
 
-        // --- HACKATHON: REAL-TIME LOCATION & SMS SIMULATION ---
-        // In a production environment, you would use Wi-Fi trilateration (e.g., Cisco Meraki/Aruba) 
-        // to find the exact coordinates of the staff nearest to `location`.
-        // Then, you would use the Twilio SDK to send an SMS dispatch to them.
-        console.log(`\n[Twilio SMS Service] 📱 Dispatching SMS to nearest available staff...`);
-        console.log(`[Twilio SMS Service] 📍 Staff found 120ft away from ${location}.`);
-        console.log(`[Twilio SMS Service] 💬 Message: "URGENT [${triageResult.classification}]: Proceed to ${location}. Protocol: ${triageResult.response_protocol[0]}"\n`);
+        // --- REAL-TIME STAFF DISPATCH (TWILIO) ---
+        if (twilioClient && process.env.STAFF_PHONE_NUMBER) {
+          const message = `🚨 SENTINEL URGENT: [${triageResult.classification}] at ${location}. Severity: ${triageResult.severity}. Protocol: ${triageResult.response_protocol[0]}`;
+          
+          twilioClient.messages
+            .create({
+              body: message,
+              from: process.env.TWILIO_PHONE_NUMBER,
+              to: process.env.STAFF_PHONE_NUMBER,
+            })
+            .then(msg => console.log(`[Twilio] SMS Sent! SID: ${msg.sid}`))
+            .catch(err => console.error(`[Twilio] SMS Failed:`, err.message));
+        } else {
+          console.log(`\n[Twilio Simulator] 📱 Dispatching SMS to nearest staff...`);
+          console.log(`[Twilio Simulator] 📍 Staff found 120ft away from ${location}.`);
+          console.log(`[Twilio Simulator] 💬 Message: "URGENT [${triageResult.classification}]: Proceed to ${location}."\n`);
+        }
 
       })
       .catch((err) => console.error("AI Triage failed:", err.message));
@@ -70,6 +95,78 @@ router.get("/", async (req, res) => {
     res.json(incidents);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch incidents" });
+  }
+});
+
+// Update Incident Status/Severity
+router.put("/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status, severity, metadata } = req.body;
+
+  try {
+    const incident = await prisma.incident.update({
+      where: { id },
+      data: {
+        status,
+        severity,
+        metadata: typeof metadata === "string" ? metadata : JSON.stringify(metadata),
+      },
+    });
+
+    // Broadcast update
+    pusher.trigger("sentinel-channel", "incident-update", incident);
+
+    res.json(incident);
+  } catch (err) {
+    console.error("Update failed:", err);
+    res.status(500).json({ error: "Failed to update incident" });
+  }
+});
+
+// Generate PDF Report
+router.get("/:id/report", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const incident = await prisma.incident.findUnique({
+      where: { id },
+    });
+
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    const pdfBuffer = await generateIncidentReport(incident);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=sentinel-report-${id}.pdf`
+    );
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Report generation failed:", err);
+    res.status(500).json({ error: "Failed to generate report" });
+  }
+});
+
+// Manual Dispatch SMS
+router.post("/:id/dispatch", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const incident = await prisma.incident.findUnique({ where: { id } });
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    if (twilioClient && process.env.STAFF_PHONE_NUMBER) {
+      const message = `🚨 MANUAL DISPATCH: [${incident.type}] at ${incident.location}. Urgent response requested.`;
+      await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: process.env.STAFF_PHONE_NUMBER,
+      });
+      console.log(`[Twilio] Manual SMS Sent for ${id}`);
+    }
+    res.json({ message: "Dispatch successful" });
+  } catch (err) {
+    console.error("Manual Dispatch failed:", err.message);
+    res.status(500).json({ error: "Failed to dispatch" });
   }
 });
 
