@@ -73,8 +73,9 @@ app.post("/api/alerts", async (req, res) => {
     pusher.trigger("sentinel-channel", "incident-update", incident);
 
     // AI Triage
+    const AI_URL = process.env.AI_SERVICE_URL || "http://localhost:5002";
     axios
-      .post("http://localhost:5002/triage", {
+      .post(`${AI_URL}/triage`, {
         description: `Alert Type: ${eventType}, Source: ${source}, Description: ${description}`,
       })
         .then(async (aiRes) => {
@@ -168,8 +169,9 @@ app.post("/api/sos-trigger", async (req, res) => {
     pusher.trigger("sentinel-channel", "incident-update", incident);
 
     // AI Triage
+    const AI_URL = process.env.AI_SERVICE_URL || "http://localhost:5002";
     axios
-      .post("http://localhost:5002/triage", {
+      .post(`${AI_URL}/triage`, {
         description: `SOS Triggered at ${data.location || "Unknown Location"}. User ID: ${data.userId || "guest"}`,
       })
       .then(async (aiRes) => {

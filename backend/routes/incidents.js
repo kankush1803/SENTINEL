@@ -39,10 +39,11 @@ router.post("/", async (req, res) => {
     // Emit initial incident
     pusher.trigger("sentinel-channel", "incident-update", incident);
 
-    // Call AI Service for Triage asynchronously
+    // Call AI Service for Triage
+    const AI_URL = process.env.AI_SERVICE_URL || "http://localhost:5002";
     axios
-      .post("http://localhost:5002/triage", {
-        description: `Incident Type: ${type}, Location: ${location}, Description: ${description}`,
+      .post(`${AI_URL}/triage`, {
+        description: `Alert Type: ${type}, Location: ${location}, Description: ${description}`,
       })
       .then(async (aiRes) => {
         const triageResult = aiRes.data.triage;
