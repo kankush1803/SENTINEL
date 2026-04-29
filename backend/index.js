@@ -143,6 +143,7 @@ app.post("/api/transcribe", upload.single("file"), async (req, res) => {
     res.status(500).json({ error: "Failed to transcribe audio" });
   }
 });
+app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     message: "Rapid Crisis Response Backend is running",

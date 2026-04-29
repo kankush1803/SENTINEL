@@ -53,7 +53,14 @@ export default function StaffPage() {
     }
   };
 
-  const triage = activeIncident?.metadata ? JSON.parse(activeIncident.metadata) : null;
+  let triage = null;
+  try {
+    triage = activeIncident?.metadata 
+      ? (typeof activeIncident.metadata === "string" ? JSON.parse(activeIncident.metadata) : activeIncident.metadata) 
+      : null;
+  } catch (e) {
+    console.error("Staff metadata parse error:", e);
+  }
 
   return (
     <main

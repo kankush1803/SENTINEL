@@ -753,36 +753,34 @@ export default function DashboardPage() {
                     >
                       RESPONSE TEAM
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>
-                      {selected.assigned}
+                    <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ flex: 1 }}
+                          onClick={() => handleStatusUpdate(selected.id, "RESOLVED")}
+                        >
+                          Resolve
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ flex: 1 }}
+                          onClick={async () => {
+                            await fetch(`${BACKEND_URL}/api/incidents/${selected.id}/dispatch`, { method: "POST" });
+                            alert("Manual Dispatch SMS Sent to Staff!");
+                          }}
+                        >
+                          Manual Dispatch
+                        </button>
+                      </div>
+                      <button 
+                        className="btn btn-ghost" 
+                        style={{ width: "100%" }}
+                        onClick={() => window.open(`${BACKEND_URL}/api/incidents/${selected.id}/report`, "_blank")}
+                      >
+                        PDF Report
+                      </button>
                     </div>
-                  </div>
-
-                  <div style={{ marginTop: "auto", display: "flex", gap: 10 }}>
-                    {selected.status === "ACTIVE" ? (
-                      <button
-                        className="btn btn-primary"
-                        style={{ flex: 1 }}
-                        onClick={() => handleStatusUpdate(selected.id, "RESOLVED")}
-                      >
-                        Resolve Incident
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-ghost"
-                        style={{ flex: 1 }}
-                        onClick={() => handleStatusUpdate(selected.id, "OPEN")}
-                      >
-                        Re-open
-                      </button>
-                    )}
-                    <button 
-                      className="btn btn-ghost" 
-                      style={{ flex: 1 }}
-                      onClick={() => window.open(`${BACKEND_URL}/api/incidents/${selected.id}/report`, "_blank")}
-                    >
-                      PDF Report
-                    </button>
                   </div>
                 </>
               ) : (

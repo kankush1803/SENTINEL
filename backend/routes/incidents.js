@@ -147,4 +147,27 @@ router.get("/:id/report", async (req, res) => {
   }
 });
 
+// Manual Dispatch SMS
+router.post("/:id/dispatch", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const incident = await prisma.incident.findUnique({ where: { id } });
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    if (twilioClient && process.env.STAFF_PHONE_NUMBER) {
+      const message = `🚨 MANUAL DISPATCH: [${incident.type}] at ${incident.location}. Urgent response requested.`;
+      await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: process.env.STAFF_PHONE_NUMBER,
+      });
+      console.log(`[Twilio] Manual SMS Sent for ${id}`);
+    }
+    res.json({ message: "Dispatch successful" });
+  } catch (err) {
+    console.error("Manual Dispatch failed:", err.message);
+    res.status(500).json({ error: "Failed to dispatch" });
+  }
+});
+
 module.exports = router;
