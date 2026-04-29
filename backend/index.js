@@ -179,6 +179,17 @@ app.post("/api/sos-trigger", async (req, res) => {
           data: { metadata: JSON.stringify(triageResult) },
         });
         pusher.trigger("sentinel-channel", "incident-update", updatedIncident);
+
+        // --- LIVE STAFF DISPATCH (TWILIO) ---
+        if (twilioClient && process.env.STAFF_PHONE_NUMBER) {
+          const smsMessage = `🚨 SENTINEL LIVE SOS: [${triageResult.classification}] at ${incident.location}. Severity: ${triageResult.severity}. Action Required!`;
+          twilioClient.messages.create({
+            body: smsMessage,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: process.env.STAFF_PHONE_NUMBER
+          }).then(m => console.log("Live SMS Sent:", m.sid))
+            .catch(e => console.error("Live SMS Error:", e.message));
+        }
       })
       .catch((err) =>
         console.error("AI Triage failed for SOS:", err.message),
